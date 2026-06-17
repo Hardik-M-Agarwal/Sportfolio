@@ -1,0 +1,197 @@
+const Team = require("../models/Team");
+const Tournament = require("../models/Tournament");
+
+// @POST /api/teams/register
+// captain registers a team for a tournament
+const registerTeam = async (req, res) => {
+  try {
+    const { tournamentId, teamName, players } = req.body;
+
+    // check tournament exists
+    const tournament = await Tournament.findById(tournamentId);
+    if (!tournament) {
+      return res.status(404).json({ message: "Tournament not found" });
+    }
+
+    // check registration is open
+    const now = new Date();
+    if (now < new Date(tournament.registrationStartDate)) {
+      return res.status(400).json({ message: "Registration has not opened yet" });
+    }
+    if (now > new Date(tournament.registrationEndDate)) {
+      return res.status(400).json({ message: "Registration has closed" });
+    }
+
+    // check captain hasn't already registered
+    const existingTeam = await Team.findOne({
+      tournamentId,
+      captainId: req.user.id,
+    });
+    if (existingTeam) {
+      return res.status(400).json({ message: "You have already registered a team for this tournament" });
+    }
+
+    // check player count matches tournament requirement
+    const requiredPlayers = tournament.sportConfig?.teamSize;
+    if (requiredPlayers && players.length !== requiredPlayers) {
+      return res.status(400).json({
+        message: `This tournament requires exactly ${requiredPlayers} players per team`,
+      });
+    }
+
+    // check if tournament is full
+    const registeredTeams = await Team.countDocuments({
+      tournamentId,
+      isWaitlisted: false,
+    });
+
+    const isWaitlisted = registeredTeams >= tournament.maxTeams;
+
+    const team = await Team.create({
+      tournamentId,
+      captainId: req.user.id,
+      teamName,
+      players,
+      paymentAmount: tournament.entryFee,
+      isWaitlisted,
+      isApproved: false,
+    });
+
+    res.status(201).json({
+      success: true,
+      team,
+      isWaitlisted,
+      message: isWaitlisted
+        ? "Tournament is full. You have been added to the waitlist."
+        : "Team registered successfully. Please complete payment.",
+    });
+  } catch (error) {
+    console.error("Register team error:", error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "You have already registered a team for this tournament" });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @GET /api/teams/my
+// get all teams registered by the captain
+const getMyTeams = async (req, res) => {
+  try {
+    const teams = await Team.find({ captainId: req.user.id })
+      .populate("tournamentId", "name sport format venue startDate endDate status entryFee prizeStructure maxTeams sportConfig")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, teams });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @GET /api/teams/tournament/:tournamentId
+// get all teams for a tournament (organiser view)
+const getTeamsByTournament = async (req, res) => {
+  try {
+    const teams = await Team.find({ tournamentId: req.params.tournamentId })
+      .populate("captainId", "name email phone")
+      .sort({ createdAt: 1 });
+
+    res.status(200).json({ success: true, teams });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @GET /api/teams/:id
+// get single team
+const getTeam = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id)
+      .populate("captainId", "name email phone")
+      .populate("tournamentId", "name sport venue startDate endDate status entryFee");
+
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    res.status(200).json({ success: true, team });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @PUT /api/teams/:id/approve
+// organiser approves a team
+const approveTeam = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id).populate("tournamentId");
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    // make sure only the organiser of that tournament can approve
+    if (team.tournamentId.organiserId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    team.isApproved = true;
+    await team.save();
+
+    res.status(200).json({ success: true, team });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @PUT /api/teams/:id/mark-paid
+// organiser manually marks a team as paid (cash payment)
+const markTeamPaid = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id).populate("tournamentId");
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    if (team.tournamentId.organiserId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    team.paymentStatus = "cash";
+    team.isApproved = true;
+    await team.save();
+
+    res.status(200).json({ success: true, team });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @DELETE /api/teams/:id
+// captain withdraws their team
+const withdrawTeam = async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id);
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    if (team.captainId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    await team.deleteOne();
+    res.status(200).json({ success: true, message: "Team withdrawn successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  registerTeam,
+  getMyTeams,
+  getTeamsByTournament,
+  getTeam,
+  approveTeam,
+  markTeamPaid,
+  withdrawTeam,
+};

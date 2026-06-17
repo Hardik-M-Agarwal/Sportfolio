@@ -1,0 +1,175 @@
+const Tournament = require("../models/Tournament");
+
+const createTournament = async (req, res) => {
+  try {
+    const {
+      name,
+      sport,
+      format,
+      venue,
+      startDate,
+      endDate,
+      registrationStartDate,
+      registrationEndDate,
+      maxTeams,
+      entryFee,
+      prizeStructure,
+      sponsorshipTiers,
+      sportConfig,
+    } = req.body;
+
+    const tournament = await Tournament.create({
+      name,
+      sport,
+      format,
+      organiserId: req.user.id,
+      venue,
+      startDate,
+      endDate,
+      registrationStartDate,
+      registrationEndDate,
+      maxTeams,
+      entryFee,
+      prizeStructure,
+      sponsorshipTiers,
+      sportConfig,
+    });
+
+    res.status(201).json({ success: true, tournament });
+  } catch (error) {
+    console.error('Create tournament error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getMyTournaments = async (req, res) => {
+  try {
+    const tournaments = await Tournament.find({ organiserId: req.user.id }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, tournaments });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getTournament = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id).populate("organiserId", "name email");
+    if (!tournament) {
+      return res.status(404).json({ message: "Tournament not found" });
+    }
+    res.status(200).json({ success: true, tournament });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getTournamentByCode = async (req, res) => {
+  try {
+    const tournament = await Tournament.findOne({
+      tournamentCode: req.params.code.toUpperCase(),
+    }).populate("organiserId", "name email phone");
+
+    if (!tournament) {
+      return res.status(404).json({ message: "Tournament not found" });
+    }
+
+    const Team = require("../models/Team");
+    const registeredCount = await Team.countDocuments({
+      tournamentId: tournament._id,
+      isWaitlisted: false,
+    });
+
+    res.status(200).json({
+      success: true,
+      tournament: { ...tournament.toObject(), registeredCount },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const updateTournament = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id);
+    if (!tournament) {
+      return res.status(404).json({ message: "Tournament not found" });
+    }
+    if (tournament.organiserId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to update this tournament" });
+    }
+    const updated = await Tournament.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body },
+      { new: true, runValidators: true }
+    );
+    res.status(200).json({ success: true, tournament: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteTournament = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id);
+    if (!tournament) {
+      return res.status(404).json({ message: "Tournament not found" });
+    }
+    if (tournament.organiserId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to delete this tournament" });
+    }
+    await tournament.deleteOne();
+    res.status(200).json({ success: true, message: "Tournament deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @GET /api/tournaments/public
+// public — no auth needed, with filters
+const getPublicTournaments = async (req, res) => {
+  try {
+    const { sport, city, status, search } = req.query;
+
+    const query = { isPublic: true };
+
+    if (sport) query.sport = sport;
+    if (status) query.status = status;
+    if (city) query['venue.city'] = { $regex: city, $options: 'i' };
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { 'venue.city': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const tournaments = await Tournament.find(query)
+      .populate("organiserId", "name email phone")
+      .sort({ createdAt: -1 });
+
+    // attach registered team count to each tournament
+    const Team = require("../models/Team");
+    const tournamentsWithCount = await Promise.all(
+      tournaments.map(async (t) => {
+        const registeredCount = await Team.countDocuments({
+          tournamentId: t._id,
+          isWaitlisted: false,
+        });
+        return { ...t.toObject(), registeredCount };
+      })
+    );
+
+    res.status(200).json({ success: true, tournaments: tournamentsWithCount });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  createTournament,
+  getMyTournaments,
+  getTournament,
+  getTournamentByCode,
+  getPublicTournaments,
+  updateTournament,
+  deleteTournament,
+};

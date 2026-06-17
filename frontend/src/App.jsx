@@ -1,5 +1,44 @@
-import LandingPage from "./pages/landing/LandingPage";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import LandingPage from './pages/landing/LandingPage';
+import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
+import TournamentsPage from './pages/organiser/TournamentsPage';
+import CaptainDashboard from './pages/captain/CaptainDashboard';
+import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
+import MyTeamsPage from './pages/captain/MyTeamsPage';
+
+function ProtectedRoute({ children, role }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/" />;
+  if (role && user.role !== role) return <Navigate to="/" />;
+  return children;
+}
 
 export default function App() {
-  return <LandingPage />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Organiser */}
+        <Route path="/organiser/dashboard" element={
+          <ProtectedRoute role="organiser"><OrganiserDashboard /></ProtectedRoute>
+        } />
+        <Route path="/organiser/tournaments" element={
+          <ProtectedRoute role="organiser"><TournamentsPage /></ProtectedRoute>
+        } />
+
+        {/* Captain */}
+        <Route path="/captain/dashboard" element={
+          <ProtectedRoute role="captain"><CaptainDashboard /></ProtectedRoute>
+        } />
+        <Route path="/captain/tournaments" element={
+          <ProtectedRoute role="captain"><BrowseTournamentsPage /></ProtectedRoute>
+        } />
+        <Route path="/captain/my-teams" element={
+          <ProtectedRoute role="captain"><MyTeamsPage /></ProtectedRoute>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
 }

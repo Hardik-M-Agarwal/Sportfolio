@@ -12,6 +12,8 @@ dns.setServers(['1.1.1.1', '8.8.8.8']);
 connectDB();
 
 const authRoutes = require('./routes/authRoutes');
+const tournamentRoutes = require("./routes/tournamentRoutes");
+const teamRoutes = require("./routes/teamRoutes");
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.use(cors({
 }));
 
 app.use('/api/auth', authRoutes);
+app.use("/api/tournaments", tournamentRoutes);
+app.use("/api/teams", teamRoutes);
 
 app.get('/', (req, res) => res.send('Sportfolio API running 🚀'));
 

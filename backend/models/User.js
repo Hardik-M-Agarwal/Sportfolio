@@ -29,6 +29,14 @@ const userSchema = new mongoose.Schema(
       enum: ["organiser", "captain", "sponsor"],
       required: [true, "Role is required"],
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      code: { type: String },
+      expiresAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
