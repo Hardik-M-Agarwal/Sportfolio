@@ -26,16 +26,21 @@ const tournamentService = {
     return response.data;
   },
 
+  async updateStatus(id, status) {
+    const response = await api.put(`/tournaments/${id}`, { status });
+    return response.data;
+  },
+
   async delete(id) {
     const response = await api.delete(`/tournaments/${id}`);
     return response.data;
   },
 
   async getPublicTournaments(filters = {}) {
-  const params = new URLSearchParams(filters).toString();
-  const response = await api.get(`/tournaments/public?${params}`);
-  return response.data;
-},
+    const params = new URLSearchParams(filters).toString();
+    const response = await api.get(`/tournaments/public?${params}`);
+    return response.data;
+  },
 };
 
 export default tournamentService;

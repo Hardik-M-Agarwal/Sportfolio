@@ -6,6 +6,7 @@ import TournamentsPage from './pages/organiser/TournamentsPage';
 import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
 import MyTeamsPage from './pages/captain/MyTeamsPage';
+import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
 
 function ProtectedRoute({ children, role }) {
   const { user } = useAuth();
@@ -27,6 +28,9 @@ export default function App() {
         <Route path="/organiser/tournaments" element={
           <ProtectedRoute role="organiser"><TournamentsPage /></ProtectedRoute>
         } />
+        <Route path="/organiser/tournaments/:id" element={
+          <ProtectedRoute role="organiser"><TournamentDetailPage /></ProtectedRoute>
+} />
 
         {/* Captain */}
         <Route path="/captain/dashboard" element={
