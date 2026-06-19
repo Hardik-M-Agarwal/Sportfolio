@@ -26,20 +26,93 @@ export default function JoinTournamentModal({ tournament, onClose, onJoined }) {
     return '';
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (document.getElementById('razorpay-script')) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSubmit = async () => {
     const err = validate();
     if (err) { setError(err); return; }
     setLoading(true);
+    setError('');
+
     try {
-      await teamService.registerTeam({
+      // step 1 — create order
+      const orderData = await teamService.createOrder({
         tournamentId: tournament._id,
         teamName,
         players,
       });
-      onJoined();
+
+      // if waitlisted — no payment needed
+      if (orderData.isWaitlisted) {
+        onJoined();
+        return;
+      }
+
+      // step 2 — load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setError('Failed to load payment gateway. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // step 3 — open Razorpay checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: 'Sportfolio',
+        description: `Entry fee — ${tournament.name}`,
+        order_id: orderData.order.id,
+        prefill: {},
+        theme: { color: '#1a6bff' },
+        handler: async (response) => {
+          // step 4 — verify payment and create team
+          try {
+            await teamService.verifyPayment({
+              tournamentId: tournament._id,
+              teamName,
+              players,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            onJoined();
+          } catch (err) {
+            setError(err.response?.data?.message || 'Payment verification failed. Contact support.');
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            setError('Payment cancelled. Your team has not been registered.');
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response) => {
+        setError(`Payment failed: ${response.error.description}`);
+        setLoading(false);
+      });
+      rzp.open();
+
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to register team');
-    } finally {
+      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
       setLoading(false);
     }
   };
@@ -135,10 +208,14 @@ export default function JoinTournamentModal({ tournament, onClose, onJoined }) {
             </div>
           </div>
 
-          {/* Payment note */}
-          <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-            <p className="text-xs text-amber-700 font-medium">
-              💳 Payment of ₹{tournament.entryFee?.toLocaleString('en-IN')} will be collected separately by the organiser. Razorpay integration coming soon.
+          {/* Payment info */}
+          <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-blue-600">💳</span>
+              <p className="text-xs font-semibold text-blue-700">Secure Payment via Razorpay</p>
+            </div>
+            <p className="text-xs text-blue-500">
+              You'll be redirected to Razorpay to pay ₹{tournament.entryFee?.toLocaleString('en-IN')} via UPI, card, or netbanking. Your team is registered only after successful payment.
             </p>
           </div>
         </div>
@@ -147,16 +224,24 @@ export default function JoinTournamentModal({ tournament, onClose, onJoined }) {
         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-7 py-4 rounded-b-2xl flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            disabled={loading}
+            className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-60"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-60"
+            className="flex-1 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {loading ? 'Registering...' : 'Register Team'}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Register & Pay ₹${tournament.entryFee?.toLocaleString('en-IN')}`
+            )}
           </button>
         </div>
       </div>

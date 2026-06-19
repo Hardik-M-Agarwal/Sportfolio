@@ -1,8 +1,13 @@
 import api from './api';
 
 const teamService = {
-  async registerTeam(data) {
-    const response = await api.post('/teams/register', data);
+  async createOrder(data) {
+    const response = await api.post('/teams/create-order', data);
+    return response.data;
+  },
+
+  async verifyPayment(data) {
+    const response = await api.post('/teams/verify-payment', data);
     return response.data;
   },
 

@@ -1,4 +1,5 @@
 const Tournament = require("../models/Tournament");
+const { autoUpdateStatus } = require("../utils/tournamentUtils");
 
 const createTournament = async (req, res) => {
   try {
@@ -44,8 +45,14 @@ const createTournament = async (req, res) => {
 
 const getMyTournaments = async (req, res) => {
   try {
-    const tournaments = await Tournament.find({ organiserId: req.user.id }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, tournaments });
+    const tournaments = await Tournament.find({ organiserId: req.user.id })
+      .sort({ createdAt: -1 });
+
+    const updated = await Promise.all(
+      tournaments.map((t) => autoUpdateStatus(t))
+    );
+
+    res.status(200).json({ success: true, tournaments: updated });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -53,10 +60,12 @@ const getMyTournaments = async (req, res) => {
 
 const getTournament = async (req, res) => {
   try {
-    const tournament = await Tournament.findById(req.params.id).populate("organiserId", "name email");
+    const tournament = await Tournament.findById(req.params.id)
+      .populate("organiserId", "name email");
     if (!tournament) {
       return res.status(404).json({ message: "Tournament not found" });
     }
+    await autoUpdateStatus(tournament);
     res.status(200).json({ success: true, tournament });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -73,6 +82,8 @@ const getTournamentByCode = async (req, res) => {
       return res.status(404).json({ message: "Tournament not found" });
     }
 
+    await autoUpdateStatus(tournament);
+
     const Team = require("../models/Team");
     const registeredCount = await Team.countDocuments({
       tournamentId: tournament._id,
@@ -83,6 +94,49 @@ const getTournamentByCode = async (req, res) => {
       success: true,
       tournament: { ...tournament.toObject(), registeredCount },
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getPublicTournaments = async (req, res) => {
+  try {
+    const { sport, city, status, search } = req.query;
+
+    const query = { isPublic: true };
+    if (sport) query.sport = sport;
+    if (city) query['venue.city'] = { $regex: city, $options: 'i' };
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { 'venue.city': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const tournaments = await Tournament.find(query)
+      .populate("organiserId", "name email phone")
+      .sort({ createdAt: -1 });
+
+    const Team = require("../models/Team");
+
+    // auto update status + attach team count
+    const tournamentsWithCount = await Promise.all(
+      tournaments.map(async (t) => {
+        const updated = await autoUpdateStatus(t);
+        const registeredCount = await Team.countDocuments({
+          tournamentId: t._id,
+          isWaitlisted: false,
+        });
+        return { ...updated.toObject(), registeredCount };
+      })
+    );
+
+    // apply status filter AFTER auto update
+    const filtered = status
+      ? tournamentsWithCount.filter((t) => t.status === status)
+      : tournamentsWithCount;
+
+    res.status(200).json({ success: true, tournaments: filtered });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -119,46 +173,6 @@ const deleteTournament = async (req, res) => {
     }
     await tournament.deleteOne();
     res.status(200).json({ success: true, message: "Tournament deleted" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @GET /api/tournaments/public
-// public — no auth needed, with filters
-const getPublicTournaments = async (req, res) => {
-  try {
-    const { sport, city, status, search } = req.query;
-
-    const query = { isPublic: true };
-
-    if (sport) query.sport = sport;
-    if (status) query.status = status;
-    if (city) query['venue.city'] = { $regex: city, $options: 'i' };
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { 'venue.city': { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const tournaments = await Tournament.find(query)
-      .populate("organiserId", "name email phone")
-      .sort({ createdAt: -1 });
-
-    // attach registered team count to each tournament
-    const Team = require("../models/Team");
-    const tournamentsWithCount = await Promise.all(
-      tournaments.map(async (t) => {
-        const registeredCount = await Team.countDocuments({
-          tournamentId: t._id,
-          isWaitlisted: false,
-        });
-        return { ...t.toObject(), registeredCount };
-      })
-    );
-
-    res.status(200).json({ success: true, tournaments: tournamentsWithCount });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

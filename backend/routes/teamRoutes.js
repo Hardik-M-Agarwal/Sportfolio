@@ -1,6 +1,7 @@
 const express = require("express");
 const {
-  registerTeam,
+  createOrder,
+  verifyPayment,
   getMyTeams,
   getTeamsByTournament,
   getTeam,
@@ -14,7 +15,8 @@ const router = express.Router();
 
 router.use(protect);
 
-router.post("/register", authorise("captain"), registerTeam);
+router.post("/create-order", authorise("captain"), createOrder);
+router.post("/verify-payment", authorise("captain"), verifyPayment);
 router.get("/my", authorise("captain"), getMyTeams);
 router.get("/tournament/:tournamentId", getTeamsByTournament);
 router.get("/:id", getTeam);

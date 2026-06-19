@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import CaptainLayout from '../../layouts/CaptainLayout';
 import JoinTournamentModal from '../../components/teams/JoinTournamentModal';
 import tournamentService from '../../services/tournamentService';
+import teamService from '../../services/teamService';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -20,29 +21,39 @@ const statuses = ['all', 'upcoming', 'registration', 'ongoing', 'completed'];
 
 export default function BrowseTournamentsPage() {
   const [tournaments, setTournaments] = useState([]);
+  const [myTeams, setMyTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ sport: '', status: '', city: '', search: '' });
   const [selected, setSelected] = useState(null);
   const [showJoin, setShowJoin] = useState(false);
 
-  const fetchTournaments = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const activeFilters = Object.fromEntries(
         Object.entries(filters).filter(([_, v]) => v && v !== 'all')
       );
-      const data = await tournamentService.getPublicTournaments(activeFilters);
-      setTournaments(data.tournaments);
+      const [tournamentsData, teamsData] = await Promise.all([
+        tournamentService.getPublicTournaments(activeFilters),
+        teamService.getMyTeams(),
+      ]);
+      setTournaments(tournamentsData.tournaments);
+      setMyTeams(teamsData.teams);
     } catch (error) {
-      console.error('Failed to fetch tournaments', error);
+      console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
-    fetchTournaments();
-  }, [fetchTournaments]);
+    fetchData();
+  }, [fetchData]);
+
+  // set of tournamentIds captain has already registered for
+  const registeredTournamentIds = new Set(
+    myTeams.map((t) => t.tournamentId?._id?.toString())
+  );
 
   const handleJoin = (tournament) => {
     setSelected(tournament);
@@ -52,7 +63,7 @@ export default function BrowseTournamentsPage() {
   const handleJoined = () => {
     setShowJoin(false);
     setSelected(null);
-    fetchTournaments();
+    fetchData();
   };
 
   return (
@@ -68,7 +79,6 @@ export default function BrowseTournamentsPage() {
 
         {/* Filters */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6 flex flex-wrap gap-4">
-          {/* Search */}
           <div className="flex-1 min-w-48">
             <div className="relative">
               <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +93,6 @@ export default function BrowseTournamentsPage() {
             </div>
           </div>
 
-          {/* City */}
           <div className="min-w-36">
             <input
               className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition-all"
@@ -93,7 +102,6 @@ export default function BrowseTournamentsPage() {
             />
           </div>
 
-          {/* Sport */}
           <select
             className="px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition-all bg-white"
             value={filters.sport}
@@ -104,7 +112,6 @@ export default function BrowseTournamentsPage() {
             ))}
           </select>
 
-          {/* Status */}
           <select
             className="px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition-all bg-white"
             value={filters.status}
@@ -132,7 +139,12 @@ export default function BrowseTournamentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {tournaments.map((t) => (
-              <TournamentCard key={t._id} tournament={t} onJoin={() => handleJoin(t)} />
+              <TournamentCard
+                key={t._id}
+                tournament={t}
+                alreadyRegistered={registeredTournamentIds.has(t._id?.toString())}
+                onJoin={() => handleJoin(t)}
+              />
             ))}
           </div>
         )}
@@ -149,18 +161,34 @@ export default function BrowseTournamentsPage() {
   );
 }
 
-function TournamentCard({ tournament: t, onJoin }) {
+function TournamentCard({ tournament: t, alreadyRegistered, onJoin }) {
   const prizePool = Math.round(t.entryFee * t.maxTeams * t.prizeStructure?.percentage / 100);
   const isRegistrationOpen = t.status === 'registration';
   const isFull = t.registeredCount >= t.maxTeams;
+
+  const getButtonState = () => {
+    if (alreadyRegistered) return { label: '✓ Already Registered', disabled: true, className: 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-not-allowed' };
+    if (!isRegistrationOpen) return { label: t.status === 'upcoming' ? 'Registration not open yet' : 'Registration closed', disabled: true, className: 'bg-gray-100 text-gray-400 cursor-not-allowed' };
+    if (isFull) return { label: 'Join Waitlist', disabled: false, className: 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100' };
+    return { label: 'Join Tournament', disabled: false, className: 'bg-emerald-600 text-white hover:bg-emerald-700 hover:-translate-y-0.5' };
+  };
+
+  const btn = getButtonState();
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
       <div className="flex items-start justify-between mb-4">
         <div className="text-3xl">{sportEmoji[t.sport]}</div>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${statusColor[t.status]}`}>
-          {t.status}
-        </span>
+        <div className="flex items-center gap-2">
+          {alreadyRegistered && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-600">
+              Registered ✓
+            </span>
+          )}
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${statusColor[t.status]}`}>
+            {t.status}
+          </span>
+        </div>
       </div>
 
       <h3 className="font-black text-lg text-gray-900 leading-tight mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -210,7 +238,7 @@ function TournamentCard({ tournament: t, onJoin }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100 mb-4">
         <div>
           <div className="text-xs text-gray-400">Entry fee</div>
           <div className="text-base font-black text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -226,20 +254,11 @@ function TournamentCard({ tournament: t, onJoin }) {
       </div>
 
       <button
-        onClick={onJoin}
-        disabled={!isRegistrationOpen}
-        className={`w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all
-          ${isRegistrationOpen
-            ? isFull
-              ? 'bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100'
-              : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:-translate-y-0.5'
-            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
+        onClick={btn.disabled ? undefined : onJoin}
+        disabled={btn.disabled}
+        className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${btn.className}`}
       >
-        {!isRegistrationOpen
-          ? t.status === 'upcoming' ? 'Registration not open yet' : 'Registration closed'
-          : isFull ? 'Join Waitlist' : 'Join Tournament'
-        }
+        {btn.label}
       </button>
     </div>
   );
