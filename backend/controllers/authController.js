@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Tournament = require("../models/Tournament");
 const { sendOTPEmail } = require("../config/emailConfig");
 
 const generateToken = (id, role) => {
@@ -18,26 +19,40 @@ const cookieOptions = {
 };
 
 // @POST /api/auth/register
-// creates unverified user and sends OTP
 const register = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone, role, tournamentCode } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists && userExists.isVerified) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    // scorer must provide a valid tournament code
+    let tournamentId = null;
+    if (role === "scorer") {
+      if (!tournamentCode) {
+        return res.status(400).json({ message: "Tournament code is required for scorers" });
+      }
+      const tournament = await Tournament.findOne({
+        tournamentCode: tournamentCode.toUpperCase(),
+      });
+      if (!tournament) {
+        return res.status(400).json({ message: "Invalid tournament code" });
+      }
+      tournamentId = tournament._id;
+    }
+
     const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     let user;
     if (userExists && !userExists.isVerified) {
-      // user started signup before but never verified — update their details
       userExists.name = name;
       userExists.password = password;
       userExists.phone = phone;
       userExists.role = role;
+      userExists.tournamentId = tournamentId;
       userExists.otp = { code: otp, expiresAt: otpExpiresAt };
       user = await userExists.save();
     } else {
@@ -47,6 +62,7 @@ const register = async (req, res) => {
         password,
         phone,
         role,
+        tournamentId,
         isVerified: false,
         otp: { code: otp, expiresAt: otpExpiresAt },
       });
@@ -60,7 +76,7 @@ const register = async (req, res) => {
       userId: user._id,
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error("Register error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -71,23 +87,17 @@ const verifyOTP = async (req, res) => {
     const { userId, otp } = req.body;
 
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user.otp || !user.otp.code) {
+    if (!user.otp || !user.otp.code)
       return res.status(400).json({ message: "No OTP found. Please register again." });
-    }
 
-    if (new Date() > user.otp.expiresAt) {
+    if (new Date() > user.otp.expiresAt)
       return res.status(400).json({ message: "OTP has expired. Please register again." });
-    }
 
-    if (user.otp.code !== otp) {
+    if (user.otp.code !== otp)
       return res.status(400).json({ message: "Invalid OTP. Please try again." });
-    }
 
-    // mark verified and clear OTP
     user.isVerified = true;
     user.otp = undefined;
     await user.save();
@@ -103,10 +113,11 @@ const verifyOTP = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        tournamentId: user.tournamentId,
       },
     });
   } catch (error) {
-    console.error('Verify OTP error:', error);
+    console.error("Verify OTP error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -115,28 +126,18 @@ const verifyOTP = async (req, res) => {
 const resendOTP = async (req, res) => {
   try {
     const { userId } = req.body;
-
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.isVerified) {
-      return res.status(400).json({ message: "User already verified" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isVerified) return res.status(400).json({ message: "User already verified" });
 
     const otp = generateOTP();
-    user.otp = {
-      code: otp,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    };
+    user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
     await user.save();
 
     await sendOTPEmail(user.email, user.name, otp);
-
     res.status(200).json({ success: true, message: "OTP resent successfully" });
   } catch (error) {
-    console.error('Resend OTP error:', error);
+    console.error("Resend OTP error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -170,6 +171,7 @@ const login = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        tournamentId: user.tournamentId,
       },
     });
   } catch (error) {

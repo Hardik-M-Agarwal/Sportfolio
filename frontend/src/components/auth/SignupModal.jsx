@@ -6,6 +6,7 @@ const roles = [
   { value: 'organiser', icon: '🏆', label: 'Organiser', desc: 'Create and manage tournaments' },
   { value: 'captain', icon: '🧢', label: 'Team Captain', desc: 'Register your team and track matches' },
   { value: 'sponsor', icon: '💼', label: 'Sponsor', desc: 'Invest in tournaments and track ROI' },
+  { value: 'scorer', icon: '🎯', label: 'Scorer', desc: 'Score matches for a tournament' },
 ];
 
 // ── OTP Screen ────────────────────────────────────────────────────────
@@ -17,13 +18,11 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
   const [resent, setResent] = useState(false);
 
   const handleChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return; // numbers only
+    if (!/^\d*$/.test(value)) return;
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // only last digit
+    newOtp[index] = value.slice(-1);
     setOtp(newOtp);
     setError('');
-
-    // auto focus next
     if (value && index < 5) {
       document.getElementById(`otp-${index + 1}`)?.focus();
     }
@@ -38,17 +37,12 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
   const handlePaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) {
-      setOtp(pasted.split(''));
-    }
+    if (pasted.length === 6) setOtp(pasted.split(''));
   };
 
   const handleVerify = async () => {
     const otpString = otp.join('');
-    if (otpString.length !== 6) {
-      setError('Please enter the complete 6-digit OTP');
-      return;
-    }
+    if (otpString.length !== 6) { setError('Please enter the complete 6-digit OTP'); return; }
     setLoading(true);
     try {
       const data = await authService.verifyOTP(userId, otpString);
@@ -79,32 +73,22 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
 
   return (
     <div className="flex flex-col items-center text-center">
-      {/* Icon */}
-      <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mb-5">
-        📧
-      </div>
-
+      <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mb-5">📧</div>
       <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-2" style={{ fontFamily: "'Syne', sans-serif" }}>
         Check your email
       </h2>
-      <p className="text-sm text-gray-400 mb-1">
-        We sent a 6-digit OTP to
-      </p>
+      <p className="text-sm text-gray-400 mb-1">We sent a 6-digit OTP to</p>
       <p className="text-sm font-semibold text-gray-700 mb-7">{email}</p>
 
       {error && (
-        <div className="w-full mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
-        </div>
+        <div className="w-full mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
       )}
-
       {resent && (
         <div className="w-full mb-4 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-600">
           ✓ OTP resent successfully
         </div>
       )}
 
-      {/* OTP inputs */}
       <div className="flex gap-3 mb-7" onPaste={handlePaste}>
         {otp.map((digit, i) => (
           <input
@@ -116,7 +100,7 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
             value={digit}
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
-            className={`w-11 h-13 text-center text-xl font-black border-2 rounded-xl transition-all outline-none
+            className={`w-11 text-center text-xl font-black border-2 rounded-xl transition-all outline-none
               ${digit ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-900'}
               focus:border-blue-500 focus:ring-2 focus:ring-blue-100`}
             style={{ height: '52px', fontFamily: "'Syne', sans-serif" }}
@@ -125,7 +109,6 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
         ))}
       </div>
 
-      {/* Verify button */}
       <button
         onClick={handleVerify}
         disabled={loading || otp.join('').length !== 6}
@@ -134,18 +117,12 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
         {loading ? 'Verifying...' : 'Verify & Continue'}
       </button>
 
-      {/* Resend */}
       <p className="text-sm text-gray-400">
         Didn't receive it?{' '}
-        <button
-          onClick={handleResend}
-          disabled={resending}
-          className="text-blue-600 font-semibold hover:underline disabled:opacity-60"
-        >
+        <button onClick={handleResend} disabled={resending} className="text-blue-600 font-semibold hover:underline disabled:opacity-60">
           {resending ? 'Sending...' : 'Resend OTP'}
         </button>
       </p>
-
       <p className="text-xs text-gray-300 mt-2">OTP expires in 10 minutes</p>
     </div>
   );
@@ -153,9 +130,8 @@ function OTPScreen({ userId, email, onVerified, onClose }) {
 
 // ── Signup Form ───────────────────────────────────────────────────────
 export default function SignupModal({ onClose, onSwitchToLogin }) {
-  const { login } = useAuth();
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', password: '', role: '',
+    name: '', email: '', phone: '', password: '', role: '', tournamentCode: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -169,13 +145,17 @@ export default function SignupModal({ onClose, onSwitchToLogin }) {
   };
 
   const handleRoleSelect = (role) => {
-    setFormData({ ...formData, role });
+    setFormData({ ...formData, role, tournamentCode: '' });
     setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.role) { setError('Please select a role to continue.'); return; }
+    if (formData.role === 'scorer' && !formData.tournamentCode.trim()) {
+      setError('Tournament code is required for scorers.');
+      return;
+    }
     setLoading(true);
     try {
       const data = await authService.register(formData);
@@ -189,11 +169,11 @@ export default function SignupModal({ onClose, onSwitchToLogin }) {
   };
 
   const handleVerified = (data) => {
-    // manually set user in context via login response
     const role = data.user.role;
     if (role === 'organiser') window.location.href = '/organiser/dashboard';
     else if (role === 'captain') window.location.href = '/captain/dashboard';
     else if (role === 'sponsor') window.location.href = '/sponsor/dashboard';
+    else if (role === 'scorer') window.location.href = '/scorer/dashboard';
     onClose();
   };
 
@@ -206,7 +186,6 @@ export default function SignupModal({ onClose, onSwitchToLogin }) {
         className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
@@ -216,17 +195,10 @@ export default function SignupModal({ onClose, onSwitchToLogin }) {
           </svg>
         </button>
 
-        {/* OTP Screen */}
         {otpScreen ? (
-          <OTPScreen
-            userId={userId}
-            email={formData.email}
-            onVerified={handleVerified}
-            onClose={onClose}
-          />
+          <OTPScreen userId={userId} email={formData.email} onVerified={handleVerified} onClose={onClose} />
         ) : (
           <>
-            {/* Header */}
             <div className="mb-7">
               <h2 className="text-2xl font-black tracking-tight text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
                 Create account
@@ -235,9 +207,7 @@ export default function SignupModal({ onClose, onSwitchToLogin }) {
             </div>
 
             {error && (
-              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                {error}
-              </div>
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -271,6 +241,27 @@ export default function SignupModal({ onClose, onSwitchToLogin }) {
                   ))}
                 </div>
               </div>
+
+              {/* Tournament code — scorer only */}
+              {formData.role === 'scorer' && (
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5 block">
+                    Tournament Code
+                  </label>
+                  <input
+                    type="text"
+                    name="tournamentCode"
+                    value={formData.tournamentCode}
+                    onChange={(e) => setFormData({ ...formData, tournamentCode: e.target.value.toUpperCase() })}
+                    placeholder="e.g. 2RBMXU"
+                    maxLength={6}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm font-mono uppercase focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all tracking-widest"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Get this code from the tournament organiser.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5 block">Full name</label>

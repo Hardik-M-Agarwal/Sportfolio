@@ -15,6 +15,10 @@ import SponsorDashboard from './pages/sponsor/SponsorDashboard';
 import SponsorBrowseTournamentsPage from './pages/sponsor/BrowseTournamentsPage';
 import MySponsorshipsPage from './pages/sponsor/MySponsorshipsPage';
 
+import ScorerDashboard from './pages/scorer/ScorerDashboard';
+import ScoringPage from './pages/scorer/ScoringPage';
+import PublicScorecard from './pages/public/PublicScorecard';
+
 function ProtectedRoute({ children, role }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/" />;
@@ -60,6 +64,15 @@ export default function App() {
         <Route path="/sponsor/my-sponsorships" element={
           <ProtectedRoute role="sponsor"><MySponsorshipsPage /></ProtectedRoute>
         } />
+
+        {/* Scorer */}
+        <Route path="/scorer/dashboard" element={
+          <ProtectedRoute role="scorer"><ScorerDashboard /></ProtectedRoute>
+        } />
+        <Route path="/scorer/match/:matchId" element={
+          <ProtectedRoute role="scorer"><ScoringPage /></ProtectedRoute>
+        } />
+        <Route path="/match/:matchId" element={<PublicScorecard />} />
 
       </Routes>
     </BrowserRouter>

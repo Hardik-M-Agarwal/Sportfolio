@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["organiser", "captain", "sponsor"],
+      enum: ["organiser", "captain", "sponsor", "scorer"],
       required: [true, "Role is required"],
     },
     isVerified: {
@@ -36,6 +36,12 @@ const userSchema = new mongoose.Schema(
     otp: {
       code: { type: String },
       expiresAt: { type: Date },
+    },
+    // scorer specific
+    tournamentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tournament",
+      default: null,
     },
   },
   { timestamps: true }
