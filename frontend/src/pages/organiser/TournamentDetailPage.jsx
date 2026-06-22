@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import OrganiserLayout from '../../layouts/OrganiserLayout';
 import tournamentService from '../../services/tournamentService';
 import teamService from '../../services/teamService';
+import sponsorshipService from '../../services/sponsorshipService';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -10,16 +11,23 @@ const sportEmoji = {
 };
 
 const statusConfig = {
-  upcoming:     { color: 'bg-gray-100 text-gray-600',    label: 'Upcoming' },
-  registration: { color: 'bg-blue-100 text-blue-600',    label: 'Registration Open' },
+  upcoming:     { color: 'bg-gray-100 text-gray-600',       label: 'Upcoming' },
+  registration: { color: 'bg-blue-100 text-blue-600',       label: 'Registration Open' },
   ongoing:      { color: 'bg-emerald-100 text-emerald-600', label: 'Ongoing' },
-  completed:    { color: 'bg-purple-100 text-purple-600', label: 'Completed' },
+  completed:    { color: 'bg-purple-100 text-purple-600',   label: 'Completed' },
 };
 
 const paymentConfig = {
-  pending: { color: 'bg-red-100 text-red-600',    label: 'Pending' },
+  pending: { color: 'bg-red-100 text-red-600',        label: 'Pending' },
   paid:    { color: 'bg-emerald-100 text-emerald-600', label: 'Paid' },
-  cash:    { color: 'bg-amber-100 text-amber-600', label: 'Cash' },
+  cash:    { color: 'bg-amber-100 text-amber-600',     label: 'Cash' },
+};
+
+const tierColor = {
+  platinum: 'bg-purple-100 text-purple-600',
+  gold:     'bg-yellow-100 text-yellow-600',
+  silver:   'bg-gray-100 text-gray-600',
+  bronze:   'bg-orange-100 text-orange-600',
 };
 
 const statusFlow = ['upcoming', 'registration', 'ongoing', 'completed'];
@@ -27,12 +35,169 @@ const statusFlow = ['upcoming', 'registration', 'ongoing', 'completed'];
 const formatDate = (date) =>
   new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
+// ── Sponsors Section ──────────────────────────────────────────────────
+function SponsorsSection({ tournamentId, basePrizePool, onSponsorshipUpdate, onSponsorshipsLoaded }) {
+  const [sponsorships, setSponsorships] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [prizeInput, setPrizeInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const fetchSponsorships = useCallback(async () => {
+    try {
+      const data = await sponsorshipService.getSponsorshipsByTournament(tournamentId);
+      setSponsorships(data.sponsorships);
+      onSponsorshipsLoaded(data.sponsorships);
+    } catch (error) {
+      console.error('Failed to fetch sponsorships', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [tournamentId, onSponsorshipsLoaded]);
+
+  useEffect(() => { fetchSponsorships(); }, [fetchSponsorships]);
+
+  const handleSetPrizeContribution = async (sponsorshipId) => {
+    setSaving(true);
+    try {
+      const data = await sponsorshipService.setPrizeContribution(sponsorshipId, Number(prizeInput));
+      const updated = sponsorships.map((s) => s._id === sponsorshipId ? data.sponsorship : s);
+      setSponsorships(updated);
+      onSponsorshipsLoaded(updated);
+      setEditingId(null);
+      setPrizeInput('');
+      onSponsorshipUpdate();
+    } catch (error) {
+      console.error('Failed to set prize contribution', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const totalSponsorshipRevenue = sponsorships.reduce((sum, s) => sum + s.amount, 0);
+  const totalPrizeContribution = sponsorships.reduce((sum, s) => sum + s.prizeContribution, 0);
+  const totalPrizePool = basePrizePool + totalPrizeContribution;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+      <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4"
+        style={{ fontFamily: "'Syne', sans-serif" }}>
+        Sponsors
+      </h2>
+
+      {sponsorships.length > 0 && (
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          {[
+            { label: 'Sponsorship Revenue',       value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, color: 'text-blue-600',    bg: 'bg-blue-50' },
+            { label: 'Sponsor Prize Contribution', value: `₹${totalPrizeContribution.toLocaleString('en-IN')}`, color: 'text-purple-600',  bg: 'bg-purple-50' },
+            { label: 'Total Prize Pool',           value: `₹${totalPrizePool.toLocaleString('en-IN')}`,         color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          ].map((s) => (
+            <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
+              <p className="text-xs text-gray-500 mb-1">{s.label}</p>
+              <p className={`text-lg font-black ${s.color}`} style={{ fontFamily: "'Syne', sans-serif" }}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : sponsorships.length === 0 ? (
+        <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
+          <div className="text-3xl mb-2">💼</div>
+          <p className="text-gray-400 text-sm">No sponsors yet.</p>
+          <p className="text-gray-300 text-xs mt-1">Sponsors will appear here once they pay.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {sponsorships.map((s) => (
+            <div key={s._id} className="border border-gray-100 rounded-xl p-4">
+              <div className="flex items-start justify-between flex-wrap gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-black text-base text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+                      {s.businessName}
+                    </h3>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${tierColor[s.tier]}`}>
+                      {s.tier}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {s.sponsorId?.name} · {s.sponsorId?.email}
+                    {s.sponsorId?.phone && ` · ${s.sponsorId.phone}`}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Amount paid</div>
+                  <div className="text-lg font-black text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    ₹{s.amount.toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400 mb-1">Prize Pool Contribution</p>
+                {editingId === s._id ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-gray-500">₹</span>
+                    <input
+                      type="number"
+                      className="input w-32 py-1.5 text-sm"
+                      placeholder="0"
+                      min={0}
+                      max={s.amount}
+                      value={prizeInput}
+                      onChange={(e) => setPrizeInput(e.target.value)}
+                    />
+                    <button
+                      onClick={() => handleSetPrizeContribution(s._id)}
+                      disabled={saving}
+                      className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-60"
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingId(null); setPrizeInput(''); }}
+                      className="px-3 py-1.5 text-xs font-semibold border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-base font-black text-purple-600" style={{ fontFamily: "'Syne', sans-serif" }}>
+                      ₹{s.prizeContribution.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-xs text-gray-300">
+                      · ₹{(s.amount - s.prizeContribution).toLocaleString('en-IN')} to operations
+                    </span>
+                    <button
+                      onClick={() => { setEditingId(s._id); setPrizeInput(s.prizeContribution); }}
+                      className="text-xs text-blue-600 font-semibold hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────
 export default function TournamentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [tournament, setTournament] = useState(null);
   const [teams, setTeams] = useState([]);
+  const [sponsorships, setSponsorships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -69,9 +234,7 @@ export default function TournamentDetailPage() {
   const handleApprove = async (teamId) => {
     try {
       await teamService.approveTeam(teamId);
-      setTeams((prev) =>
-        prev.map((t) => t._id === teamId ? { ...t, isApproved: true } : t)
-      );
+      setTeams((prev) => prev.map((t) => t._id === teamId ? { ...t, isApproved: true } : t));
     } catch (error) {
       console.error('Failed to approve team', error);
     }
@@ -80,9 +243,7 @@ export default function TournamentDetailPage() {
   const handleMarkPaid = async (teamId) => {
     try {
       await teamService.markTeamPaid(teamId);
-      setTeams((prev) =>
-        prev.map((t) => t._id === teamId ? { ...t, paymentStatus: 'cash', isApproved: true } : t)
-      );
+      setTeams((prev) => prev.map((t) => t._id === teamId ? { ...t, paymentStatus: 'cash', isApproved: true } : t));
     } catch (error) {
       console.error('Failed to mark team as paid', error);
     }
@@ -117,17 +278,22 @@ export default function TournamentDetailPage() {
     );
   }
 
-  // financial calculations
-  const paidTeams = teams.filter((t) => t.paymentStatus === 'paid');
-  const cashTeams = teams.filter((t) => t.paymentStatus === 'cash');
-  const pendingTeams = teams.filter((t) => t.paymentStatus === 'pending');
+  const paidTeams       = teams.filter((t) => t.paymentStatus === 'paid');
+  const cashTeams       = teams.filter((t) => t.paymentStatus === 'cash');
+  const pendingTeams    = teams.filter((t) => t.paymentStatus === 'pending');
   const registeredTeams = teams.filter((t) => !t.isWaitlisted);
   const waitlistedTeams = teams.filter((t) => t.isWaitlisted);
 
-  const entryRevenue = [...paidTeams, ...cashTeams].length * tournament.entryFee;
+  const entryRevenue  = [...paidTeams, ...cashTeams].length * tournament.entryFee;
   const basePrizePool = Math.round(
     tournament.entryFee * registeredTeams.length * tournament.prizeStructure.percentage / 100
   );
+
+  // live sponsor calculations from lifted state
+  const totalSponsorshipRevenue = sponsorships.reduce((sum, s) => sum + s.amount, 0);
+  const totalPrizeContribution  = sponsorships.reduce((sum, s) => sum + s.prizeContribution, 0);
+  const totalRevenue            = entryRevenue + totalSponsorshipRevenue;
+  const totalPrizePool          = basePrizePool + totalPrizeContribution;
 
   const currentStatusIndex = statusFlow.indexOf(tournament.status);
   const prevStatus = currentStatusIndex > 0 ? statusFlow[currentStatusIndex - 1] : null;
@@ -161,11 +327,12 @@ export default function TournamentDetailPage() {
                   {statusConfig[tournament.status]?.label}
                 </span>
               </div>
-              <p className="text-sm text-gray-400 capitalize">{tournament.sport} · {tournament.format} · {tournament.venue.name}, {tournament.venue.city}</p>
+              <p className="text-sm text-gray-400 capitalize">
+                {tournament.sport} · {tournament.format} · {tournament.venue.name}, {tournament.venue.city}
+              </p>
             </div>
           </div>
 
-          {/* Status controls */}
           <div className="flex items-center gap-2">
             {prevStatus && (
               <button
@@ -188,7 +355,7 @@ export default function TournamentDetailPage() {
           </div>
         </div>
 
-        {/* Top grid — overview + finance */}
+        {/* Top grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
 
           {/* Tournament Info */}
@@ -198,22 +365,20 @@ export default function TournamentDetailPage() {
             </h2>
             <div className="flex flex-col gap-3">
               {[
-                { label: 'Sport', value: tournament.sport },
-                { label: 'Format', value: tournament.format },
-                { label: 'Venue', value: `${tournament.venue.name}, ${tournament.venue.city}` },
+                { label: 'Sport',        value: tournament.sport },
+                { label: 'Format',       value: tournament.format },
+                { label: 'Venue',        value: `${tournament.venue.name}, ${tournament.venue.city}` },
                 { label: 'Registration', value: `${formatDate(tournament.registrationStartDate)} → ${formatDate(tournament.registrationEndDate)}` },
-                { label: 'Tournament', value: `${formatDate(tournament.startDate)} → ${formatDate(tournament.endDate)}` },
-                { label: 'Max Teams', value: tournament.maxTeams },
+                { label: 'Tournament',   value: `${formatDate(tournament.startDate)} → ${formatDate(tournament.endDate)}` },
+                { label: 'Max Teams',    value: tournament.maxTeams },
                 { label: 'Players/Team', value: tournament.sportConfig?.teamSize },
-                { label: 'Entry Fee', value: `₹${tournament.entryFee.toLocaleString('en-IN')}` },
+                { label: 'Entry Fee',    value: `₹${tournament.entryFee.toLocaleString('en-IN')}` },
               ].map((r) => (
                 <div key={r.label} className="flex justify-between items-start">
                   <span className="text-xs text-gray-400">{r.label}</span>
                   <span className="text-xs font-semibold text-gray-700 text-right capitalize max-w-[60%]">{r.value}</span>
                 </div>
               ))}
-
-              {/* Tournament code */}
               <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                 <span className="text-xs text-gray-400">Code</span>
                 <div className="flex items-center gap-1.5">
@@ -236,45 +401,60 @@ export default function TournamentDetailPage() {
             </div>
           </div>
 
-          {/* Financial Snapshot */}
+          {/* Financial Snapshot — now uses live sponsor data */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 lg:col-span-2">
             <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
               Financial Snapshot
             </h2>
-
             <div className="grid grid-cols-2 gap-4 mb-5">
               {[
-                { label: 'Entry Revenue Collected', value: `₹${entryRevenue.toLocaleString('en-IN')}`, sub: `${paidTeams.length + cashTeams.length} teams paid`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { label: 'Sponsorship Revenue', value: '₹0', sub: 'No sponsors yet', color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Total Revenue', value: `₹${entryRevenue.toLocaleString('en-IN')}`, sub: 'Entry + sponsorship', color: 'text-gray-900', bg: 'bg-gray-50' },
-                { label: 'Base Prize Pool', value: `₹${basePrizePool.toLocaleString('en-IN')}`, sub: `${tournament.prizeStructure.percentage}% of entry revenue`, color: 'text-purple-600', bg: 'bg-purple-50' },
+                {
+                  label: 'Entry Revenue Collected',
+                  value: `₹${entryRevenue.toLocaleString('en-IN')}`,
+                  sub: `${paidTeams.length + cashTeams.length} teams paid`,
+                  color: 'text-emerald-600', bg: 'bg-emerald-50',
+                },
+                {
+                  label: 'Sponsorship Revenue',
+                  value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`,
+                  sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',
+                  color: 'text-blue-600', bg: 'bg-blue-50',
+                },
+                {
+                  label: 'Total Revenue',
+                  value: `₹${totalRevenue.toLocaleString('en-IN')}`,
+                  sub: 'Entry + sponsorship',
+                  color: 'text-gray-900', bg: 'bg-gray-50',
+                },
+                {
+                  label: 'Total Prize Pool',
+                  value: `₹${totalPrizePool.toLocaleString('en-IN')}`,
+                  sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`,
+                  color: 'text-purple-600', bg: 'bg-purple-50',
+                },
               ].map((s) => (
                 <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
                   <p className="text-xs text-gray-500 mb-1">{s.label}</p>
-                  <p className={`text-xl font-black tracking-tight ${s.color}`} style={{ fontFamily: "'Syne', sans-serif" }}>
-                    {s.value}
-                  </p>
+                  <p className={`text-xl font-black tracking-tight ${s.color}`} style={{ fontFamily: "'Syne', sans-serif" }}>{s.value}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
                 </div>
               ))}
             </div>
-
-            {/* Prize distribution */}
             <div className="border border-gray-100 rounded-xl p-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Prize Distribution</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: '🥇 Winner', pct: tournament.prizeStructure.distribution.winner },
-                  { label: '🥈 Runner-up', pct: tournament.prizeStructure.distribution.runnerUp },
-                  { label: '🥉 Third place', pct: tournament.prizeStructure.distribution.third },
-                  { label: '⭐ Special awards', pct: tournament.prizeStructure.distribution.special },
+                  { label: '🥇 Winner',         pct: tournament.prizeStructure.distribution.winner },
+                  { label: '🥈 Runner-up',      pct: tournament.prizeStructure.distribution.runnerUp },
+                  { label: '🥉 Third place',    pct: tournament.prizeStructure.distribution.third },
+                  { label: '⭐ Special awards',  pct: tournament.prizeStructure.distribution.special },
                 ].map((d) => (
                   <div key={d.label} className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">{d.label}</span>
                     <div className="text-right">
                       <span className="text-xs font-bold text-gray-700">{d.pct}%</span>
                       <span className="text-xs text-gray-400 ml-1">
-                        · ₹{Math.round(basePrizePool * d.pct / 100).toLocaleString('en-IN')}
+                        · ₹{Math.round(totalPrizePool * d.pct / 100).toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
@@ -294,19 +474,17 @@ export default function TournamentDetailPage() {
               {registeredTeams.length} / {tournament.maxTeams} teams
             </span>
           </div>
-
           <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-4">
             <div
               className="h-full bg-blue-600 rounded-full transition-all"
               style={{ width: `${Math.min((registeredTeams.length / tournament.maxTeams) * 100, 100)}%` }}
             />
           </div>
-
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Paid', value: paidTeams.length + cashTeams.length, color: 'text-emerald-600' },
-              { label: 'Pending Payment', value: pendingTeams.length, color: 'text-red-500' },
-              { label: 'Waitlisted', value: waitlistedTeams.length, color: 'text-amber-500' },
+              { label: 'Paid',            value: paidTeams.length + cashTeams.length, color: 'text-emerald-600' },
+              { label: 'Pending Payment', value: pendingTeams.length,                 color: 'text-red-500' },
+              { label: 'Waitlisted',      value: waitlistedTeams.length,              color: 'text-amber-500' },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className={`text-2xl font-black ${s.color}`} style={{ fontFamily: "'Syne', sans-serif" }}>{s.value}</div>
@@ -321,7 +499,6 @@ export default function TournamentDetailPage() {
           <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
             Registered Teams ({registeredTeams.length})
           </h2>
-
           {teams.length === 0 ? (
             <div className="text-center py-10">
               <div className="text-4xl mb-3">👥</div>
@@ -357,12 +534,10 @@ export default function TournamentDetailPage() {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${paymentConfig[team.paymentStatus]?.color}`}>
                         {paymentConfig[team.paymentStatus]?.label}
                       </span>
-
                       {!team.isApproved && !team.isWaitlisted && (
                         <button
                           onClick={() => handleApprove(team._id)}
@@ -371,7 +546,6 @@ export default function TournamentDetailPage() {
                           Approve
                         </button>
                       )}
-
                       {team.paymentStatus === 'pending' && !team.isWaitlisted && (
                         <button
                           onClick={() => handleMarkPaid(team._id)}
@@ -382,8 +556,6 @@ export default function TournamentDetailPage() {
                       )}
                     </div>
                   </div>
-
-                  {/* Players */}
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <p className="text-xs text-gray-400 mb-2">Players ({team.players?.length})</p>
                     <div className="flex flex-wrap gap-2">
@@ -401,17 +573,13 @@ export default function TournamentDetailPage() {
           )}
         </div>
 
-        {/* Sponsors placeholder */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-          <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
-            Sponsors
-          </h2>
-          <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
-            <div className="text-3xl mb-2">💼</div>
-            <p className="text-gray-400 text-sm">Sponsorship module coming soon.</p>
-            <p className="text-gray-300 text-xs mt-1">Sponsors and their contributions will appear here.</p>
-          </div>
-        </div>
+        {/* Sponsors */}
+        <SponsorsSection
+          tournamentId={id}
+          basePrizePool={basePrizePool}
+          onSponsorshipUpdate={fetchData}
+          onSponsorshipsLoaded={setSponsorships}
+        />
 
         {/* Quick Actions */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">

@@ -14,6 +14,7 @@ connectDB();
 const authRoutes = require('./routes/authRoutes');
 const tournamentRoutes = require("./routes/tournamentRoutes");
 const teamRoutes = require("./routes/teamRoutes");
+const sponsorshipRoutes = require("./routes/sponsorshipRoutes");
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/teams", teamRoutes);
+app.use("/api/sponsorships", sponsorshipRoutes);
 
 app.get('/', (req, res) => res.send('Sportfolio API running 🚀'));
 

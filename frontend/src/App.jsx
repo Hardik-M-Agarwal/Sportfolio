@@ -1,12 +1,19 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+
 import LandingPage from './pages/landing/LandingPage';
+
 import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
 import TournamentsPage from './pages/organiser/TournamentsPage';
+import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
+
 import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
 import MyTeamsPage from './pages/captain/MyTeamsPage';
-import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
+
+import SponsorDashboard from './pages/sponsor/SponsorDashboard';
+import SponsorBrowseTournamentsPage from './pages/sponsor/BrowseTournamentsPage';
+import MySponsorshipsPage from './pages/sponsor/MySponsorshipsPage';
 
 function ProtectedRoute({ children, role }) {
   const { user } = useAuth();
@@ -30,7 +37,7 @@ export default function App() {
         } />
         <Route path="/organiser/tournaments/:id" element={
           <ProtectedRoute role="organiser"><TournamentDetailPage /></ProtectedRoute>
-} />
+        } />
 
         {/* Captain */}
         <Route path="/captain/dashboard" element={
@@ -42,6 +49,18 @@ export default function App() {
         <Route path="/captain/my-teams" element={
           <ProtectedRoute role="captain"><MyTeamsPage /></ProtectedRoute>
         } />
+
+        {/* Sponsor */}
+        <Route path="/sponsor/dashboard" element={
+          <ProtectedRoute role="sponsor"><SponsorDashboard /></ProtectedRoute>
+        } />
+        <Route path="/sponsor/tournaments" element={
+          <ProtectedRoute role="sponsor"><SponsorBrowseTournamentsPage /></ProtectedRoute>
+        } />
+        <Route path="/sponsor/my-sponsorships" element={
+          <ProtectedRoute role="sponsor"><MySponsorshipsPage /></ProtectedRoute>
+        } />
+
       </Routes>
     </BrowserRouter>
   );
