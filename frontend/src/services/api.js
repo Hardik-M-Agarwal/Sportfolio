@@ -1,5 +1,17 @@
 import axios from 'axios';
 
+const publicRoutes = [
+  '/auth/me',
+  '/tournaments/public',
+  '/tournaments/code/',
+  '/teams/tournament/',
+  '/matches/tournament/',
+  '/matches/team/',
+  '/matches/',
+  '/sponsorships/tournament/',
+  '/scoring/',
+];
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
@@ -11,7 +23,10 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && !error.config.url.includes('/auth/me')) {
+    const url = error.config.url || '';
+    const isPublicRoute = publicRoutes.some((route) => url.includes(route));
+
+    if (error.response?.status === 401 && !isPublicRoute) {
       window.location.href = '/';
     }
     return Promise.reject(error);

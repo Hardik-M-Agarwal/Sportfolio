@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import LoginModal from "../../components/auth/LoginModal";
 import SignupModal from "../../components/auth/SignupModal";
@@ -49,8 +50,6 @@ function HeroCard() {
             <span className={`text-sm font-bold ${r.color}`} style={{ fontFamily: "'Syne', sans-serif" }}>{r.val}</span>
           </div>
         ))}
-
-        {/* Prize pool bar */}
         <div className="mt-4">
           <div className="flex justify-between text-xs text-gray-400 mb-2">
             <span>Prize pool (60%)</span>
@@ -60,8 +59,6 @@ function HeroCard() {
             <div className="h-full w-[62%] bg-blue-600 rounded-full" />
           </div>
         </div>
-
-        {/* Teams badge */}
         <div className="mt-3 flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
           <span className="text-xs text-gray-500">Teams registered · 14 / 16</span>
           <span className="text-xs font-semibold text-white bg-emerald-600 rounded-full px-3 py-0.5">2 slots left</span>
@@ -98,7 +95,6 @@ function RolesSection() {
         <SectionEyebrow>Who it's for</SectionEyebrow>
         <SectionTitle>Four roles. One platform.</SectionTitle>
         <SectionSub>Every stakeholder gets their own tailored experience — no one sees more than they need to.</SectionSub>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 border border-gray-200 rounded-2xl overflow-hidden mt-12">
           {roles.map((r) => (
             <div key={r.name} className="bg-white p-7 hover:bg-gray-50 transition-colors">
@@ -143,7 +139,6 @@ function FeaturesSection() {
         <SectionEyebrow>9 Modules</SectionEyebrow>
         <SectionTitle>Every organiser pain point, solved.</SectionTitle>
         <SectionSub>From the first team registering to the final prize payout — everything in one place.</SectionSub>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
           {features.map((f) => (
             <div
@@ -188,7 +183,6 @@ function FinanceSection() {
         <p className="text-base text-white/50 leading-relaxed max-w-xl mb-12">
           The financial dashboard updates live — no spreadsheets, no manual calculation. Prize pool recalculates the moment a new team pays.
         </p>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="flex flex-col gap-7">
             {[
@@ -206,7 +200,6 @@ function FinanceSection() {
               </div>
             ))}
           </div>
-
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <p className="text-xs text-white/40 uppercase tracking-widest mb-5">Income statement · Live</p>
             {[
@@ -265,7 +258,6 @@ function SportsSection() {
         <SectionEyebrow>Multi-sport</SectionEyebrow>
         <SectionTitle>One platform. Every sport.</SectionTitle>
         <SectionSub>Player stats adapt to the sport. Cricket tracks runs and wickets. Football tracks goals and assists. The finance engine stays the same across all of them.</SectionSub>
-
         <div className="flex flex-wrap gap-3 mt-10">
           {sports.map((s) => (
             <div key={s.name} className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-default">
@@ -273,7 +265,6 @@ function SportsSection() {
             </div>
           ))}
         </div>
-
         <div className="mt-8">
           <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-3">Tournament formats supported</p>
           <div className="flex flex-wrap gap-2">
@@ -316,7 +307,6 @@ function MLSection() {
         <SectionEyebrow>AI / ML layer</SectionEyebrow>
         <SectionTitle>Data-backed decisions.<br />Not guesswork.</SectionTitle>
         <SectionSub>Three XGBoost models trained on 50,000 synthetic tournament records give organisers and sponsors an edge before the first match is played.</SectionSub>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
           {mlModels.map((m) => (
             <div key={m.title} className="bg-white border border-gray-200 rounded-xl p-7 hover:-translate-y-1 transition-all duration-200 hover:shadow-md">
@@ -371,7 +361,6 @@ function SponsorsSection() {
         <SectionEyebrow>Sponsorship tiers</SectionEyebrow>
         <SectionTitle>Give sponsors real ROI data.</SectionTitle>
         <SectionSub>Every tier includes a Sponsor Certificate on payment and an auto-generated Impact Report after the tournament closes.</SectionSub>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
           {tiers.map((t) => (
             <div key={t.name} className={`rounded-2xl border-2 p-7 ${t.border} ${t.bg}`}>
@@ -395,6 +384,7 @@ function SponsorsSection() {
 
 // ── CTA ──────────────────────────────────────────────────────────────
 function CTASection({ onSignup, onLogin }) {
+  const navigate = useNavigate();
   return (
     <section className="bg-blue-600 py-24 px-6 text-center">
       <div className="max-w-3xl mx-auto">
@@ -413,6 +403,12 @@ function CTASection({ onSignup, onLogin }) {
             Create your tournament
           </button>
           <button
+            onClick={() => navigate('/tournaments')}
+            className="px-7 py-3.5 rounded-xl bg-white/20 border border-white/40 text-white font-semibold text-base hover:bg-white/30 hover:-translate-y-0.5 transition-all"
+          >
+            Browse Tournaments
+          </button>
+          <button
             onClick={onLogin}
             className="px-7 py-3.5 rounded-xl border-2 border-white/40 text-white font-medium text-base hover:border-white hover:-translate-y-0.5 transition-all"
           >
@@ -426,6 +422,7 @@ function CTASection({ onSignup, onLogin }) {
 
 // ── FOOTER ───────────────────────────────────────────────────────────
 function Footer() {
+  const navigate = useNavigate();
   return (
     <footer className="bg-gray-900 text-white/40 py-12 px-6 text-center">
       <div className="font-black text-lg text-white mb-2" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -436,6 +433,9 @@ function Footer() {
         {["Features", "Finance engine", "ML models", "Sponsors", "Privacy", "Terms"].map((l) => (
           <a key={l} href="#" className="hover:text-white transition-colors">{l}</a>
         ))}
+        <button onClick={() => navigate('/tournaments')} className="hover:text-white transition-colors">
+          Browse Tournaments
+        </button>
       </div>
       <p className="text-xs">© 2025 Sportfolio. Built for local sport.</p>
     </footer>
@@ -444,6 +444,7 @@ function Footer() {
 
 // ── HERO ─────────────────────────────────────────────────────────────
 function Hero({ onSignup }) {
+  const navigate = useNavigate();
   return (
     <section className="max-w-6xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
       <div>
@@ -470,6 +471,12 @@ function Hero({ onSignup }) {
           >
             Create tournament
           </button>
+          <button
+            onClick={() => navigate('/tournaments')}
+            className="px-6 py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-base hover:bg-emerald-700 hover:-translate-y-0.5 transition-all"
+          >
+            Browse Tournaments
+          </button>
           <a href="#features"
             className="px-6 py-3.5 rounded-xl bg-white border border-gray-200 text-gray-700 font-medium text-base hover:border-gray-400 hover:-translate-y-0.5 transition-all"
           >
@@ -493,7 +500,6 @@ function Hero({ onSignup }) {
         </div>
       </div>
 
-      {/* Hero card */}
       <div className="hidden lg:block">
         <HeroCard />
       </div>

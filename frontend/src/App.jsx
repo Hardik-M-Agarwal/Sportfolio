@@ -10,6 +10,7 @@ import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
 import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
 import MyTeamsPage from './pages/captain/MyTeamsPage';
+import TeamMatchesPage from './pages/captain/TeamMatchesPage';
 
 import SponsorDashboard from './pages/sponsor/SponsorDashboard';
 import SponsorBrowseTournamentsPage from './pages/sponsor/BrowseTournamentsPage';
@@ -17,7 +18,10 @@ import MySponsorshipsPage from './pages/sponsor/MySponsorshipsPage';
 
 import ScorerDashboard from './pages/scorer/ScorerDashboard';
 import ScoringPage from './pages/scorer/ScoringPage';
+
 import PublicScorecard from './pages/public/PublicScorecard';
+import PublicTournamentsPage from './pages/public/PublicTournamentsPage';
+import PublicTournamentDetail from './pages/public/PublicTournamentDetail';
 
 function ProtectedRoute({ children, role }) {
   const { user } = useAuth();
@@ -53,6 +57,9 @@ export default function App() {
         <Route path="/captain/my-teams" element={
           <ProtectedRoute role="captain"><MyTeamsPage /></ProtectedRoute>
         } />
+        <Route path="/captain/teams/:teamId/matches" element={
+          <ProtectedRoute role="captain"><TeamMatchesPage /></ProtectedRoute>
+        } />
 
         {/* Sponsor */}
         <Route path="/sponsor/dashboard" element={
@@ -72,6 +79,10 @@ export default function App() {
         <Route path="/scorer/match/:matchId" element={
           <ProtectedRoute role="scorer"><ScoringPage /></ProtectedRoute>
         } />
+
+        {/* Public */}
+        <Route path="/tournaments" element={<PublicTournamentsPage />} />
+        <Route path="/t/:code" element={<PublicTournamentDetail />} />
         <Route path="/match/:matchId" element={<PublicScorecard />} />
 
       </Routes>
