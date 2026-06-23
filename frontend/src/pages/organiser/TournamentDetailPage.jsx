@@ -12,23 +12,23 @@ const sportEmoji = {
 };
 
 const statusConfig = {
-  upcoming: { color: 'bg-gray-100 text-gray-600', label: 'Upcoming' },
-  registration: { color: 'bg-blue-100 text-blue-600', label: 'Registration Open' },
-  ongoing: { color: 'bg-emerald-100 text-emerald-600', label: 'Ongoing' },
-  completed: { color: 'bg-purple-100 text-purple-600', label: 'Completed' },
+  upcoming:     { color: 'bg-gray-100 text-gray-600',       label: 'Upcoming' },
+  registration: { color: 'bg-blue-100 text-blue-600',       label: 'Registration Open' },
+  ongoing:      { color: 'bg-emerald-100 text-emerald-600', label: 'Ongoing' },
+  completed:    { color: 'bg-purple-100 text-purple-600',   label: 'Completed' },
 };
 
 const paymentConfig = {
-  pending: { color: 'bg-red-100 text-red-600', label: 'Pending' },
-  paid: { color: 'bg-emerald-100 text-emerald-600', label: 'Paid' },
-  cash: { color: 'bg-amber-100 text-amber-600', label: 'Cash' },
+  pending: { color: 'bg-red-100 text-red-600',        label: 'Pending' },
+  paid:    { color: 'bg-emerald-100 text-emerald-600', label: 'Paid' },
+  cash:    { color: 'bg-amber-100 text-amber-600',     label: 'Cash' },
 };
 
 const tierColor = {
   platinum: 'bg-purple-100 text-purple-600',
-  gold: 'bg-yellow-100 text-yellow-600',
-  silver: 'bg-gray-100 text-gray-600',
-  bronze: 'bg-orange-100 text-orange-600',
+  gold:     'bg-yellow-100 text-yellow-600',
+  silver:   'bg-gray-100 text-gray-600',
+  bronze:   'bg-orange-100 text-orange-600',
 };
 
 const statusFlow = ['upcoming', 'registration', 'ongoing', 'completed'];
@@ -76,8 +76,8 @@ function SponsorsSection({ tournamentId, basePrizePool, onSponsorshipUpdate, onS
   };
 
   const totalSponsorshipRevenue = sponsorships.reduce((sum, s) => sum + s.amount, 0);
-  const totalPrizeContribution = sponsorships.reduce((sum, s) => sum + s.prizeContribution, 0);
-  const totalPrizePool = basePrizePool + totalPrizeContribution;
+  const totalPrizeContribution  = sponsorships.reduce((sum, s) => sum + s.prizeContribution, 0);
+  const totalPrizePool          = basePrizePool + totalPrizeContribution;
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
@@ -89,9 +89,9 @@ function SponsorsSection({ tournamentId, basePrizePool, onSponsorshipUpdate, onS
       {sponsorships.length > 0 && (
         <div className="grid grid-cols-3 gap-4 mb-5">
           {[
-            { label: 'Sponsorship Revenue', value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Sponsor Prize Contribution', value: `₹${totalPrizeContribution.toLocaleString('en-IN')}`, color: 'text-purple-600', bg: 'bg-purple-50' },
-            { label: 'Total Prize Pool', value: `₹${totalPrizePool.toLocaleString('en-IN')}`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Sponsorship Revenue',       value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, color: 'text-blue-600',    bg: 'bg-blue-50' },
+            { label: 'Sponsor Prize Contribution', value: `₹${totalPrizeContribution.toLocaleString('en-IN')}`, color: 'text-purple-600',  bg: 'bg-purple-50' },
+            { label: 'Total Prize Pool',           value: `₹${totalPrizePool.toLocaleString('en-IN')}`,         color: 'text-emerald-600', bg: 'bg-emerald-50' },
           ].map((s) => (
             <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
               <p className="text-xs text-gray-500 mb-1">{s.label}</p>
@@ -137,7 +137,6 @@ function SponsorsSection({ tournamentId, basePrizePool, onSponsorshipUpdate, onS
                   </div>
                 </div>
               </div>
-
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <p className="text-xs text-gray-400 mb-1">Prize Pool Contribution</p>
                 {editingId === s._id ? (
@@ -279,22 +278,21 @@ export default function TournamentDetailPage() {
     );
   }
 
-  const paidTeams = teams.filter((t) => t.paymentStatus === 'paid');
-  const cashTeams = teams.filter((t) => t.paymentStatus === 'cash');
-  const pendingTeams = teams.filter((t) => t.paymentStatus === 'pending');
+  const paidTeams       = teams.filter((t) => t.paymentStatus === 'paid');
+  const cashTeams       = teams.filter((t) => t.paymentStatus === 'cash');
+  const pendingTeams    = teams.filter((t) => t.paymentStatus === 'pending');
   const registeredTeams = teams.filter((t) => !t.isWaitlisted);
   const waitlistedTeams = teams.filter((t) => t.isWaitlisted);
 
-  const entryRevenue = [...paidTeams, ...cashTeams].length * tournament.entryFee;
+  const entryRevenue  = [...paidTeams, ...cashTeams].length * tournament.entryFee;
   const basePrizePool = Math.round(
     tournament.entryFee * registeredTeams.length * tournament.prizeStructure.percentage / 100
   );
 
-  // live sponsor calculations from lifted state
   const totalSponsorshipRevenue = sponsorships.reduce((sum, s) => sum + s.amount, 0);
-  const totalPrizeContribution = sponsorships.reduce((sum, s) => sum + s.prizeContribution, 0);
-  const totalRevenue = entryRevenue + totalSponsorshipRevenue;
-  const totalPrizePool = basePrizePool + totalPrizeContribution;
+  const totalPrizeContribution  = sponsorships.reduce((sum, s) => sum + s.prizeContribution, 0);
+  const totalRevenue            = entryRevenue + totalSponsorshipRevenue;
+  const totalPrizePool          = basePrizePool + totalPrizeContribution;
 
   const currentStatusIndex = statusFlow.indexOf(tournament.status);
   const prevStatus = currentStatusIndex > 0 ? statusFlow[currentStatusIndex - 1] : null;
@@ -366,14 +364,14 @@ export default function TournamentDetailPage() {
             </h2>
             <div className="flex flex-col gap-3">
               {[
-                { label: 'Sport', value: tournament.sport },
-                { label: 'Format', value: tournament.format },
-                { label: 'Venue', value: `${tournament.venue.name}, ${tournament.venue.city}` },
+                { label: 'Sport',        value: tournament.sport },
+                { label: 'Format',       value: tournament.format },
+                { label: 'Venue',        value: `${tournament.venue.name}, ${tournament.venue.city}` },
                 { label: 'Registration', value: `${formatDate(tournament.registrationStartDate)} → ${formatDate(tournament.registrationEndDate)}` },
-                { label: 'Tournament', value: `${formatDate(tournament.startDate)} → ${formatDate(tournament.endDate)}` },
-                { label: 'Max Teams', value: tournament.maxTeams },
+                { label: 'Tournament',   value: `${formatDate(tournament.startDate)} → ${formatDate(tournament.endDate)}` },
+                { label: 'Max Teams',    value: tournament.maxTeams },
                 { label: 'Players/Team', value: tournament.sportConfig?.teamSize },
-                { label: 'Entry Fee', value: `₹${tournament.entryFee.toLocaleString('en-IN')}` },
+                { label: 'Entry Fee',    value: `₹${tournament.entryFee.toLocaleString('en-IN')}` },
               ].map((r) => (
                 <div key={r.label} className="flex justify-between items-start">
                   <span className="text-xs text-gray-400">{r.label}</span>
@@ -402,37 +400,17 @@ export default function TournamentDetailPage() {
             </div>
           </div>
 
-          {/* Financial Snapshot — now uses live sponsor data */}
+          {/* Financial Snapshot */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 lg:col-span-2">
             <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
               Financial Snapshot
             </h2>
             <div className="grid grid-cols-2 gap-4 mb-5">
               {[
-                {
-                  label: 'Entry Revenue Collected',
-                  value: `₹${entryRevenue.toLocaleString('en-IN')}`,
-                  sub: `${paidTeams.length + cashTeams.length} teams paid`,
-                  color: 'text-emerald-600', bg: 'bg-emerald-50',
-                },
-                {
-                  label: 'Sponsorship Revenue',
-                  value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`,
-                  sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',
-                  color: 'text-blue-600', bg: 'bg-blue-50',
-                },
-                {
-                  label: 'Total Revenue',
-                  value: `₹${totalRevenue.toLocaleString('en-IN')}`,
-                  sub: 'Entry + sponsorship',
-                  color: 'text-gray-900', bg: 'bg-gray-50',
-                },
-                {
-                  label: 'Total Prize Pool',
-                  value: `₹${totalPrizePool.toLocaleString('en-IN')}`,
-                  sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`,
-                  color: 'text-purple-600', bg: 'bg-purple-50',
-                },
+                { label: 'Entry Revenue Collected', value: `₹${entryRevenue.toLocaleString('en-IN')}`,          sub: `${paidTeams.length + cashTeams.length} teams paid`,                                              color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'Sponsorship Revenue',     value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',              color: 'text-blue-600',    bg: 'bg-blue-50' },
+                { label: 'Total Revenue',           value: `₹${totalRevenue.toLocaleString('en-IN')}`,           sub: 'Entry + sponsorship',                                                                            color: 'text-gray-900',    bg: 'bg-gray-50' },
+                { label: 'Total Prize Pool',        value: `₹${totalPrizePool.toLocaleString('en-IN')}`,         sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`, color: 'text-purple-600', bg: 'bg-purple-50' },
               ].map((s) => (
                 <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
                   <p className="text-xs text-gray-500 mb-1">{s.label}</p>
@@ -445,10 +423,10 @@ export default function TournamentDetailPage() {
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Prize Distribution</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: '🥇 Winner', pct: tournament.prizeStructure.distribution.winner },
-                  { label: '🥈 Runner-up', pct: tournament.prizeStructure.distribution.runnerUp },
-                  { label: '🥉 Third place', pct: tournament.prizeStructure.distribution.third },
-                  { label: '⭐ Special awards', pct: tournament.prizeStructure.distribution.special },
+                  { label: '🥇 Winner',         pct: tournament.prizeStructure.distribution.winner },
+                  { label: '🥈 Runner-up',      pct: tournament.prizeStructure.distribution.runnerUp },
+                  { label: '🥉 Third place',    pct: tournament.prizeStructure.distribution.third },
+                  { label: '⭐ Special awards',  pct: tournament.prizeStructure.distribution.special },
                 ].map((d) => (
                   <div key={d.label} className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">{d.label}</span>
@@ -483,9 +461,9 @@ export default function TournamentDetailPage() {
           </div>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Paid', value: paidTeams.length + cashTeams.length, color: 'text-emerald-600' },
-              { label: 'Pending Payment', value: pendingTeams.length, color: 'text-red-500' },
-              { label: 'Waitlisted', value: waitlistedTeams.length, color: 'text-amber-500' },
+              { label: 'Paid',            value: paidTeams.length + cashTeams.length, color: 'text-emerald-600' },
+              { label: 'Pending Payment', value: pendingTeams.length,                 color: 'text-red-500' },
+              { label: 'Waitlisted',      value: waitlistedTeams.length,              color: 'text-amber-500' },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className={`text-2xl font-black ${s.color}`} style={{ fontFamily: "'Syne', sans-serif" }}>{s.value}</div>
@@ -575,10 +553,7 @@ export default function TournamentDetailPage() {
         </div>
 
         {/* Matches */}
-        <MatchesSection
-          tournament={tournament}
-          teams={teams}
-        />
+        <MatchesSection tournament={tournament} teams={teams} />
 
         {/* Sponsors */}
         <SponsorsSection
@@ -594,12 +569,6 @@ export default function TournamentDetailPage() {
             Quick Actions
           </h2>
           <div className="flex flex-wrap gap-3">
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all hover:-translate-y-0.5">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Generate Schedule
-            </button>
             <button className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-all hover:-translate-y-0.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

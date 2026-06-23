@@ -68,6 +68,7 @@ const getMatchesByTournament = async (req, res) => {
       .populate("team1Id", "teamName")
       .populate("team2Id", "teamName")
       .populate("result.winnerId", "teamName")
+      .populate("scorerId", "name email") 
       .sort({ round: 1, matchNumber: 1 });
 
     res.status(200).json({ success: true, matches });

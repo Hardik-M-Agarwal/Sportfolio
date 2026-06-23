@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import matchService from '../../services/matchService';
 import GenerateScheduleModal from './GenerateScheduleModal';
 import ScheduleMatchModal from './ScheduleMatchModal';
 import EnterResultModal from './EnterResultModal';
+import AssignScorerModal from './AssignScorerModal';
 
 const statusColor = {
   scheduled: 'bg-gray-100 text-gray-500',
@@ -27,6 +29,7 @@ export default function MatchesSection({ tournament, teams }) {
   const [showGenerate, setShowGenerate] = useState(false);
   const [schedulingMatch, setSchedulingMatch] = useState(null);
   const [resultMatch, setResultMatch] = useState(null);
+  const [assigningMatch, setAssigningMatch] = useState(null);
 
   const fetchMatches = useCallback(async () => {
     try {
@@ -54,6 +57,11 @@ export default function MatchesSection({ tournament, teams }) {
   const handleResultEntered = (updatedMatch) => {
     setMatches((prev) => prev.map((m) => m._id === updatedMatch._id ? updatedMatch : m));
     setResultMatch(null);
+  };
+
+  const handleScorerAssigned = (updatedMatch) => {
+    setMatches((prev) => prev.map((m) => m._id === updatedMatch._id ? { ...m, scorerId: updatedMatch.scorerId } : m));
+    setAssigningMatch(null);
   };
 
   // group matches by round
@@ -99,7 +107,6 @@ export default function MatchesSection({ tournament, teams }) {
           <div className="flex flex-col gap-6">
             {Object.entries(rounds).map(([roundName, roundMatches]) => (
               <div key={roundName}>
-                {/* Round header */}
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                     {roundName}
@@ -116,6 +123,7 @@ export default function MatchesSection({ tournament, teams }) {
                       tournament={tournament}
                       onSchedule={() => setSchedulingMatch(match)}
                       onResult={() => setResultMatch(match)}
+                      onAssignScorer={() => setAssigningMatch(match)}
                     />
                   ))}
                 </div>
@@ -150,13 +158,24 @@ export default function MatchesSection({ tournament, teams }) {
           onResultEntered={handleResultEntered}
         />
       )}
+
+      {assigningMatch && (
+        <AssignScorerModal
+          match={assigningMatch}
+          tournament={tournament}
+          onClose={() => setAssigningMatch(null)}
+          onAssigned={handleScorerAssigned}
+        />
+      )}
     </>
   );
 }
 
-function MatchCard({ match, tournament, onSchedule, onResult }) {
+function MatchCard({ match, tournament, onSchedule, onResult, onAssignScorer }) {
+  const navigate = useNavigate();
   const isCompleted = match.status === 'completed';
   const winner = match.result?.winnerId;
+  const hasScorer = match.scorerId;
 
   return (
     <div className={`border rounded-xl p-4 transition-all
@@ -165,7 +184,7 @@ function MatchCard({ match, tournament, onSchedule, onResult }) {
       <div className="flex items-start justify-between flex-wrap gap-3">
         {/* Match info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="text-xs font-bold text-gray-300 font-mono">#{match.matchNumber}</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor[match.status]}`}>
               {match.status}
@@ -173,6 +192,12 @@ function MatchCard({ match, tournament, onSchedule, onResult }) {
             {match.group && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-500">
                 Group {match.group}
+              </span>
+            )}
+            {/* Scorer badge */}
+            {hasScorer && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-500 flex items-center gap-1">
+                🎯 {match.scorerId?.name || 'Scorer assigned'}
               </span>
             )}
           </div>
@@ -241,31 +266,54 @@ function MatchCard({ match, tournament, onSchedule, onResult }) {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {!isCompleted && (
+        <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+          <div className="flex items-center gap-2">
+            {!isCompleted && (
+              <button
+                onClick={onSchedule}
+                className="px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {match.matchDate ? 'Edit Schedule' : 'Set Schedule'}
+              </button>
+            )}
+            {!isCompleted && (
+              <button
+                onClick={onResult}
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                Enter Result
+              </button>
+            )}
+            {isCompleted && (
+              <button
+                onClick={onResult}
+                className="px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Edit Result
+              </button>
+            )}
+          </div>
+
+          {/* Second row of actions */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={onSchedule}
-              className="px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={onAssignScorer}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors
+                ${hasScorer
+                  ? 'border border-purple-200 text-purple-600 hover:bg-purple-50'
+                  : 'border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
             >
-              {match.matchDate ? 'Edit Schedule' : 'Set Schedule'}
+              🎯 {hasScorer ? 'Change Scorer' : 'Assign Scorer'}
             </button>
-          )}
-          {!isCompleted && (
+
+            {/* View live scorecard */}
             <button
-              onClick={onResult}
-              className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              onClick={() => navigate(`/match/${match._id}`)}
+              className="px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Enter Result
+              📊 Scorecard
             </button>
-          )}
-          {isCompleted && (
-            <button
-              onClick={onResult}
-              className="px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Edit Result
-            </button>
-          )}
+          </div>
         </div>
       </div>
     </div>
