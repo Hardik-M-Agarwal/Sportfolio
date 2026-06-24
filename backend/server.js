@@ -19,6 +19,7 @@ const teamRoutes = require('./routes/teamRoutes');
 const sponsorshipRoutes = require('./routes/sponsorshipRoutes');
 const matchRoutes = require('./routes/matchRoutes');
 const scoringRoutes = require('./routes/scoringRoutes');
+const communicationsRoutes = require("./routes/communicationsRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -68,6 +69,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/sponsorships', sponsorshipRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/scoring', scoringRoutes);
+app.use("/api/communications", communicationsRoutes);
 
 app.get('/', (req, res) => res.send('Sportfolio API running 🚀'));
 

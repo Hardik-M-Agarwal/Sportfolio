@@ -167,13 +167,11 @@ const verifyPayment = async (req, res) => {
 const getMyTeams = async (req, res) => {
   try {
     const teams = await Team.find({ captainId: req.user.id })
-      .populate(
-        "tournamentId",
-        "name sport format venue startDate endDate status entryFee prizeStructure maxTeams sportConfig"
-      )
+      .populate("tournamentId", "name sport format venue startDate endDate status entryFee prizeStructure maxTeams sportConfig")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, teams });
   } catch (error) {
+    console.error("getMyTeams error:", error.message, error.stack);
     res.status(500).json({ message: error.message });
   }
 };

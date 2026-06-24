@@ -15,7 +15,6 @@ const router = express.Router();
 
 // ── public ──────────────────────────────────────────────────────────
 router.get("/tournament/:tournamentId", getTeamsByTournament);
-router.get("/:id", getTeam);
 
 // ── protected ────────────────────────────────────────────────────────
 router.use(protect);
@@ -26,5 +25,8 @@ router.get("/my", authorise("captain"), getMyTeams);
 router.put("/:id/approve", authorise("organiser"), approveTeam);
 router.put("/:id/mark-paid", authorise("organiser"), markTeamPaid);
 router.delete("/:id", authorise("captain"), withdrawTeam);
+
+// ── must be last — catches any /:id ──────────────────────────────────
+router.get("/:id", getTeam);
 
 module.exports = router;

@@ -20,21 +20,21 @@ const createTournament = async (req, res) => {
     } = req.body;
 
     const tournament = await Tournament.create({
-      name,
-      sport,
-      format,
-      organiserId: req.user.id,
-      venue,
-      startDate,
-      endDate,
-      registrationStartDate,
-      registrationEndDate,
-      maxTeams,
-      entryFee,
-      prizeStructure,
-      sponsorshipTiers,
-      sportConfig,
-    });
+  name,
+  sport,
+  format,
+  organiserId: req.user.id,
+  venue,
+  startDate,
+  endDate,
+  registrationStartDate,
+  registrationEndDate: new Date(new Date(registrationEndDate).setHours(23, 59, 59, 999)),
+  maxTeams,
+  entryFee,
+  prizeStructure,
+  sponsorshipTiers,
+  sportConfig,
+});
 
     res.status(201).json({ success: true, tournament });
   } catch (error) {
