@@ -20,6 +20,7 @@ const sponsorshipRoutes = require('./routes/sponsorshipRoutes');
 const matchRoutes = require('./routes/matchRoutes');
 const scoringRoutes = require('./routes/scoringRoutes');
 const communicationsRoutes = require("./routes/communicationsRoutes");
+const { startReminderService } = require('./services/reminderService');
 
 const app = express();
 const server = http.createServer(app);
@@ -70,6 +71,8 @@ app.use('/api/sponsorships', sponsorshipRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/scoring', scoringRoutes);
 app.use("/api/communications", communicationsRoutes);
+
+startReminderService();
 
 app.get('/', (req, res) => res.send('Sportfolio API running 🚀'));
 
