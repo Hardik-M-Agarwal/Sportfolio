@@ -1,0 +1,19 @@
+{
+  "r2_score": 0.9564,
+  "rmse": 237.04,
+  "mae": 147.74,
+  "cv_r2_mean": 0.9563,
+  "cv_r2_std": 0.0013,
+  "best_iteration": 198,
+  "feature_importance": {
+    "city_tier": 0.3971,
+    "venue_cost": 0.2456,
+    "max_teams": 0.2079,
+    "format_encoded": 0.0674,
+    "sport_encoded": 0.0282,
+    "has_sponsor": 0.0205,
+    "tournament_days": 0.0191,
+    "team_size": 0.0117,
+    "prize_percentage": 0.0026
+  }
+}
