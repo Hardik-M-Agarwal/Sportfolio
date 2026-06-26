@@ -21,6 +21,7 @@ const matchRoutes = require('./routes/matchRoutes');
 const scoringRoutes = require('./routes/scoringRoutes');
 const communicationsRoutes = require("./routes/communicationsRoutes");
 const { startReminderService } = require('./services/reminderService');
+const outreachRoutes = require("./routes/outreachRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -71,6 +72,7 @@ app.use('/api/sponsorships', sponsorshipRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/scoring', scoringRoutes);
 app.use("/api/communications", communicationsRoutes);
+app.use("/api/outreach", outreachRoutes);
 
 startReminderService();
 

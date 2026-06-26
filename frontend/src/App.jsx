@@ -6,6 +6,7 @@ import LandingPage from './pages/landing/LandingPage';
 import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
 import TournamentsPage from './pages/organiser/TournamentsPage';
 import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
+import SponsorshipsPage from './pages/organiser/SponsorshipsPage';
 
 import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
@@ -45,6 +46,9 @@ export default function App() {
         } />
         <Route path="/organiser/tournaments/:id" element={
           <ProtectedRoute role="organiser"><TournamentDetailPage /></ProtectedRoute>
+        } />
+        <Route path="/organiser/sponsorships" element={
+          <ProtectedRoute role="organiser"><SponsorshipsPage /></ProtectedRoute>
         } />
 
         {/* Captain */}

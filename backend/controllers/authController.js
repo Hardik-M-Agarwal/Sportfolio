@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Tournament = require("../models/Tournament");
-const { sendOTPEmail } = require("../config/emailConfig");
+const { sendOTPEmail } = require("../services/emailService");
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
