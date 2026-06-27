@@ -1,0 +1,26 @@
+{
+  "accuracy": 0.9315,
+  "f1_score": 0.9312,
+  "cv_accuracy_mean": 0.9278,
+  "cv_accuracy_std": 0.0024,
+  "best_iteration": 499,
+  "classes": [
+    "oversubscribed",
+    "will_fill",
+    "wont_fill"
+  ],
+  "feature_importance": {
+    "days_remaining": 0.2509,
+    "fill_percentage": 0.217,
+    "days_since_open": 0.1503,
+    "city_tier": 0.0828,
+    "total_days_available": 0.061,
+    "current_registrations": 0.0506,
+    "sport_encoded": 0.0472,
+    "format_encoded": 0.0414,
+    "max_teams": 0.0296,
+    "has_sponsor": 0.0276,
+    "prize_pool": 0.0239,
+    "entry_fee": 0.0177
+  }
+}
