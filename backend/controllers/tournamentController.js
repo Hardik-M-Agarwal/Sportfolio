@@ -1,5 +1,6 @@
 const Tournament = require("../models/Tournament");
 const { autoUpdateStatus } = require("../utils/tournamentUtils");
+const Team = require('../models/Team');
 
 const createTournament = async (req, res) => {
   try {
@@ -49,7 +50,27 @@ const getMyTournaments = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const updated = await Promise.all(
-      tournaments.map((t) => autoUpdateStatus(t))
+      tournaments.map(async (t) => {
+        const updatedT = await autoUpdateStatus(t);
+
+        const [registeredCount, paidCount] = await Promise.all([
+          Team.countDocuments({
+            tournamentId: t._id,
+            isWaitlisted: false,
+          }),
+          Team.countDocuments({
+            tournamentId: t._id,
+            isWaitlisted: false,
+            paymentStatus: { $in: ['paid', 'cash'] },
+          }),
+        ]);
+
+        return {
+          ...updatedT.toObject(),
+          registeredCount,
+          paidTeams: paidCount,
+        };
+      })
     );
 
     res.status(200).json({ success: true, tournaments: updated });
