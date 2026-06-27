@@ -4,43 +4,39 @@ import tournamentService from '../../services/tournamentService';
 const STEPS = ['Basic Info', 'Dates', 'Format & Teams', 'Finance', 'Review'];
 
 const sportOptions = [
-  { value: 'cricket', label: 'Cricket', emoji: '🏏' },
-  { value: 'football', label: 'Football', emoji: '⚽' },
-  { value: 'badminton', label: 'Badminton', emoji: '🏸' },
-  { value: 'kabaddi', label: 'Kabaddi', emoji: '🤼' },
+  { value: 'cricket',    label: 'Cricket',    emoji: '🏏' },
+  { value: 'football',   label: 'Football',   emoji: '⚽' },
+  { value: 'badminton',  label: 'Badminton',  emoji: '🏸' },
+  { value: 'kabaddi',    label: 'Kabaddi',    emoji: '🤼' },
   { value: 'basketball', label: 'Basketball', emoji: '🏀' },
   { value: 'volleyball', label: 'Volleyball', emoji: '🏐' },
 ];
 
 const formatOptions = [
-  { value: 'knockout', label: 'Knockout', desc: "Single elimination — lose once, you're out" },
-  { value: 'league', label: 'League / Round Robin', desc: 'Everyone plays everyone, points decide standings' },
-  { value: 'league+knockout', label: 'League + Knockout', desc: 'Group stage followed by knockout rounds' },
+  { value: 'knockout',        label: 'Knockout',              desc: "Single elimination — lose once, you're out" },
+  { value: 'league',          label: 'League / Round Robin',  desc: 'Everyone plays everyone, points decide standings' },
+  { value: 'league+knockout', label: 'League + Knockout',     desc: 'Group stage followed by knockout rounds' },
 ];
 
 const sportSpecialAwards = {
-  cricket: ['Top Scorer', 'Best Bowler', 'Most Catches'],
-  football: ['Top Scorer', 'Most Assists', 'Clean Sheet'],
-  badminton: ['Most Sets Won', 'Best Rally Winner'],
-  kabaddi: ['Most Raids', 'Most Tackles'],
+  cricket:    ['Top Scorer', 'Best Bowler', 'Most Catches'],
+  football:   ['Top Scorer', 'Most Assists', 'Clean Sheet'],
+  badminton:  ['Most Sets Won', 'Best Rally Winner'],
+  kabaddi:    ['Most Raids', 'Most Tackles'],
   basketball: ['Top Scorer', 'Most Assists', 'Most Rebounds'],
   volleyball: ['Most Spikes', 'Most Blocks', 'Best Setter'],
 };
 
 const defaultTeamSizes = {
-  cricket: 11,
-  football: 11,
-  badminton: 1,
-  kabaddi: 7,
-  basketball: 5,
-  volleyball: 6,
+  cricket: 11, football: 11, badminton: 1,
+  kabaddi: 7,  basketball: 5, volleyball: 6,
 };
 
 const defaultForm = {
   name: '',
   sport: '',
   format: '',
-  venue: { name: '', city: '' },
+  venue: { name: '', city: '', capacity: '' },
   startDate: '',
   endDate: '',
   registrationStartDate: '',
@@ -62,10 +58,10 @@ const formatDate = (dateStr) => {
 };
 
 export default function CreateTournamentModal({ onClose, onCreated }) {
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState(defaultForm);
+  const [step, setStep]       = useState(0);
+  const [form, setForm]       = useState(defaultForm);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -104,7 +100,7 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
 
   const toggleAward = (award) => {
     const current = form.sportConfig.specialAwards || [];
-    const updated = current.includes(award)
+    const updated  = current.includes(award)
       ? current.filter((a) => a !== award)
       : [...current, award];
     setForm((prev) => ({
@@ -115,16 +111,16 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
 
   const validateStep = () => {
     if (step === 0) {
-      if (!form.name.trim()) return 'Tournament name is required';
-      if (!form.sport) return 'Please select a sport';
-      if (!form.venue.name.trim()) return 'Venue name is required';
-      if (!form.venue.city.trim()) return 'City is required';
+      if (!form.name.trim())        return 'Tournament name is required';
+      if (!form.sport)              return 'Please select a sport';
+      if (!form.venue.name.trim())  return 'Venue name is required';
+      if (!form.venue.city.trim())  return 'City is required';
     }
     if (step === 1) {
       if (!form.registrationStartDate) return 'Registration start date is required';
-      if (!form.registrationEndDate) return 'Registration end date is required';
-      if (!form.startDate) return 'Tournament start date is required';
-      if (!form.endDate) return 'Tournament end date is required';
+      if (!form.registrationEndDate)   return 'Registration end date is required';
+      if (!form.startDate)             return 'Tournament start date is required';
+      if (!form.endDate)               return 'Tournament end date is required';
       if (new Date(form.registrationEndDate) < new Date(form.registrationStartDate))
         return 'Registration end date must be after registration start date';
       if (new Date(form.startDate) < new Date(form.registrationEndDate))
@@ -162,6 +158,10 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
         ...form,
         maxTeams: Number(form.maxTeams),
         entryFee: Number(form.entryFee),
+        venue: {
+          ...form.venue,
+          capacity: form.venue.capacity ? Number(form.venue.capacity) : 0,
+        },
         sportConfig: {
           ...form.sportConfig,
           teamSize: Number(form.sportConfig.teamSize),
@@ -277,24 +277,39 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Venue Name</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. Wankhede Stadium"
-                    value={form.venue.name}
-                    onChange={(e) => updateNested('venue', 'name', e.target.value)}
-                  />
+              {/* Venue — 3 fields */}
+              <div>
+                <label className="label">Venue</label>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <input
+                      className="input"
+                      placeholder="Venue name e.g. Wankhede Stadium"
+                      value={form.venue.name}
+                      onChange={(e) => updateNested('venue', 'name', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <input
+                      className="input"
+                      placeholder="City e.g. Mumbai"
+                      value={form.venue.city}
+                      onChange={(e) => updateNested('venue', 'city', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="label">City</label>
                   <input
+                    type="number"
                     className="input"
-                    placeholder="e.g. Mumbai"
-                    value={form.venue.city}
-                    onChange={(e) => updateNested('venue', 'city', e.target.value)}
+                    placeholder="Venue capacity (spectators) e.g. 500 — used for Sponsor ROI estimate"
+                    min={0}
+                    value={form.venue.capacity}
+                    onChange={(e) => updateNested('venue', 'capacity', e.target.value)}
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Optional — how many spectators your venue can hold. Helps estimate sponsor audience reach.
+                  </p>
                 </div>
               </div>
             </div>
@@ -468,9 +483,9 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
                 <div className="flex gap-2 flex-wrap">
                   {[
                     { value: 'platinum', active: 'border-purple-400 bg-purple-50 text-purple-600' },
-                    { value: 'gold', active: 'border-yellow-400 bg-yellow-50 text-yellow-600' },
-                    { value: 'silver', active: 'border-gray-400 bg-gray-50 text-gray-600' },
-                    { value: 'bronze', active: 'border-orange-300 bg-orange-50 text-orange-600' },
+                    { value: 'gold',     active: 'border-yellow-400 bg-yellow-50 text-yellow-600' },
+                    { value: 'silver',   active: 'border-gray-400 bg-gray-50 text-gray-600' },
+                    { value: 'bronze',   active: 'border-orange-300 bg-orange-50 text-orange-600' },
                   ].map((t) => (
                     <button
                       key={t.value}
@@ -546,10 +561,10 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
                 </p>
                 <div className="flex flex-col gap-3">
                   {[
-                    { key: 'winner', label: '🥇 Winner' },
+                    { key: 'winner',   label: '🥇 Winner' },
                     { key: 'runnerUp', label: '🥈 Runner-up' },
-                    { key: 'third', label: '🥉 Third place' },
-                    { key: 'special', label: '⭐ Special awards' },
+                    { key: 'third',    label: '🥉 Third place' },
+                    { key: 'special',  label: '⭐ Special awards' },
                   ].map((d) => {
                     const amount = estimatedPrizePool
                       ? Math.round(estimatedPrizePool * form.prizeStructure.distribution[d.key] / 100)
@@ -584,15 +599,16 @@ export default function CreateTournamentModal({ onClose, onCreated }) {
             <div className="flex flex-col gap-3">
               <p className="text-sm text-gray-500 mb-2">Review your tournament details before creating.</p>
               {[
-                { label: 'Name', value: form.name },
-                { label: 'Sport', value: form.sport },
-                { label: 'Format', value: form.format },
-                { label: 'Venue', value: `${form.venue.name}, ${form.venue.city}` },
-                { label: 'Reg Window', value: `${formatDate(form.registrationStartDate)} → ${formatDate(form.registrationEndDate)}` },
-                { label: 'Tournament', value: `${formatDate(form.startDate)} → ${formatDate(form.endDate)}` },
-                { label: 'Max Teams', value: form.maxTeams },
+                { label: 'Name',         value: form.name },
+                { label: 'Sport',        value: form.sport },
+                { label: 'Format',       value: form.format },
+                { label: 'Venue',        value: `${form.venue.name}, ${form.venue.city}` },
+                { label: 'Capacity',     value: form.venue.capacity ? `${Number(form.venue.capacity).toLocaleString('en-IN')} spectators` : 'Not specified' },
+                { label: 'Reg Window',   value: `${formatDate(form.registrationStartDate)} → ${formatDate(form.registrationEndDate)}` },
+                { label: 'Tournament',   value: `${formatDate(form.startDate)} → ${formatDate(form.endDate)}` },
+                { label: 'Max Teams',    value: form.maxTeams },
                 { label: 'Players/Team', value: form.sportConfig.teamSize },
-                { label: 'Entry Fee', value: `₹${Number(form.entryFee).toLocaleString('en-IN')} per team` },
+                { label: 'Entry Fee',    value: `₹${Number(form.entryFee).toLocaleString('en-IN')} per team` },
                 { label: 'Total Revenue', value: `₹${(Number(form.entryFee) * Number(form.maxTeams)).toLocaleString('en-IN')}` },
                 { label: 'Base Prize Pool', value: `${form.prizeStructure.percentage}% → ₹${estimatedPrizePool.toLocaleString('en-IN')}` },
                 { label: 'Distribution', value: `W:${form.prizeStructure.distribution.winner}% RU:${form.prizeStructure.distribution.runnerUp}% 3rd:${form.prizeStructure.distribution.third}% Special:${form.prizeStructure.distribution.special}%` },

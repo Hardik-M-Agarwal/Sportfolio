@@ -1,20 +1,21 @@
 const mongoose = require("mongoose");
 
 const prizeDistributionSchema = new mongoose.Schema({
-  winner: { type: Number, default: 50 },
+  winner:   { type: Number, default: 50 },
   runnerUp: { type: Number, default: 30 },
-  third: { type: Number, default: 10 },
-  special: { type: Number, default: 10 },
+  third:    { type: Number, default: 10 },
+  special:  { type: Number, default: 10 },
 }, { _id: false });
 
 const prizeStructureSchema = new mongoose.Schema({
-  percentage: { type: Number, required: true, min: 0, max: 100 },
+  percentage:   { type: Number, required: true, min: 0, max: 100 },
   distribution: { type: prizeDistributionSchema, default: () => ({}) },
 }, { _id: false });
 
 const venueSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  city: { type: String, required: true, trim: true },
+  name:     { type: String, required: true, trim: true },
+  city:     { type: String, required: true, trim: true },
+  capacity: { type: Number, default: 0 },  // ← added
 }, { _id: false });
 
 const tournamentSchema = new mongoose.Schema(
@@ -49,11 +50,11 @@ const tournamentSchema = new mongoose.Schema(
       enum: ["upcoming", "registration", "ongoing", "completed"],
       default: "upcoming",
     },
-    venue: { type: venueSchema, required: true },
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
+    venue:                 { type: venueSchema, required: true },
+    startDate:             { type: Date, required: true },
+    endDate:               { type: Date, required: true },
     registrationStartDate: { type: Date, required: true },
-    registrationEndDate: { type: Date, required: true },
+    registrationEndDate:   { type: Date, required: true },
     maxTeams: {
       type: Number,
       required: true,
@@ -64,7 +65,7 @@ const tournamentSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    prizeStructure: { type: prizeStructureSchema, required: true },
+    prizeStructure:   { type: prizeStructureSchema, required: true },
     sponsorshipTiers: {
       type: [String],
       enum: ["platinum", "gold", "silver", "bronze"],
