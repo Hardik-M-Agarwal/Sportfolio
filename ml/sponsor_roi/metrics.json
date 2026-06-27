@@ -1,0 +1,24 @@
+{
+  "reach_model": {
+    "r2_score": 0.9828,
+    "rmse": 954.2,
+    "mae": 454.95
+  },
+  "cpp_model": {
+    "r2_score": 0.9904,
+    "rmse": 1.38,
+    "mae": 0.66
+  },
+  "feature_importance": {
+    "team_size": 0.2241,
+    "format_encoded": 0.194,
+    "num_matches": 0.141,
+    "city_tier": 0.1233,
+    "venue_capacity": 0.0918,
+    "tournament_days": 0.0767,
+    "num_teams": 0.0641,
+    "sponsorship_tier_encoded": 0.0441,
+    "sport_encoded": 0.0323,
+    "has_existing_sponsor": 0.0085
+  }
+}

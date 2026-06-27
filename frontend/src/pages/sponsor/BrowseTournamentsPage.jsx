@@ -3,6 +3,7 @@ import SponsorLayout from '../../layouts/SponsorLayout';
 import SponsorshipModal from '../../components/sponsorships/SponsorshipModal';
 import tournamentService from '../../services/tournamentService';
 import sponsorshipService from '../../services/sponsorshipService';
+import api from '../../services/api';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -10,10 +11,10 @@ const sportEmoji = {
 };
 
 const statusColor = {
-  upcoming: 'bg-gray-100 text-gray-500',
+  upcoming:     'bg-gray-100 text-gray-500',
   registration: 'bg-blue-100 text-blue-600',
-  ongoing: 'bg-emerald-100 text-emerald-600',
-  completed: 'bg-purple-100 text-purple-600',
+  ongoing:      'bg-emerald-100 text-emerald-600',
+  completed:    'bg-purple-100 text-purple-600',
 };
 
 const tierInfo = {
@@ -23,16 +24,215 @@ const tierInfo = {
   bronze:   { color: 'bg-orange-100 text-orange-700 border-orange-300', amount: 7000 },
 };
 
+const ROI_RATING_COLOR = {
+  excellent: 'text-emerald-600 bg-emerald-50',
+  good:      'text-blue-600 bg-blue-50',
+  fair:      'text-amber-600 bg-amber-50',
+  poor:      'text-red-500 bg-red-50',
+};
+
+const ROI_RATING_LABEL = {
+  excellent: '🟢 Excellent ROI',
+  good:      '🔵 Good ROI',
+  fair:      '🟡 Fair ROI',
+  poor:      '🔴 Poor ROI',
+};
+
 const sports = ['all', 'cricket', 'football', 'badminton', 'kabaddi', 'basketball', 'volleyball'];
 
-export default function SponsorBrowseTournamentsPage() {
-  const [tournaments, setTournaments] = useState([]);
-  const [mySponsorships, setMySponsorships] = useState([]);
+// ── ROI Preview Modal ─────────────────────────────────────────────────
+function ROIModal({ tournament, tier, onClose, onProceed }) {
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ sport: '', search: '' });
-  const [selected, setSelected] = useState(null);
-  const [selectedTier, setSelectedTier] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [result, setResult]   = useState(null);
+  const [error, setError]     = useState('');
+
+  const getCityTier = () => {
+    const tier1 = ['mumbai', 'delhi', 'bangalore', 'bengaluru', 'chennai', 'hyderabad', 'kolkata'];
+    const tier2 = ['pune', 'surat', 'nagpur', 'jaipur', 'lucknow', 'kanpur', 'ahmedabad', 'indore'];
+    const city  = tournament?.venue?.city?.toLowerCase() || '';
+    if (tier1.some((c) => city.includes(c))) return 1;
+    if (tier2.some((c) => city.includes(c))) return 2;
+    return 3;
+  };
+
+  const getTournamentDays = () => {
+    if (!tournament?.startDate || !tournament?.endDate) return 1;
+    const start = new Date(tournament.startDate);
+    const end   = new Date(tournament.endDate);
+    return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1);
+  };
+
+  const getNumMatches = () => {
+    const n = tournament.maxTeams || 8;
+    if (tournament.format === 'knockout') return n - 1;
+    if (tournament.format === 'league') return n * (n - 1) / 2;
+    return Math.floor(n * (n - 1) / 4) + Math.floor(n / 2) - 1;
+  };
+
+  useEffect(() => {
+    const fetchROI = async () => {
+      try {
+        const response = await api.post('/ml/sponsor-roi', {
+          sport:                tournament.sport,
+          city_tier:            getCityTier(),
+          num_teams:            tournament.registeredCount || tournament.maxTeams,
+          num_matches:          getNumMatches(),
+          venue_capacity:       tournament.venue?.capacity || 300,
+          team_size:            tournament.sportConfig?.teamSize || 11,
+          tournament_days:      getTournamentDays(),
+          has_existing_sponsor: 0,
+          format:               tournament.format,
+          sponsorship_tier:     tier,
+        });
+        setResult(response.data.data);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load ROI estimate. ML service may not be running.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchROI();
+  }, []);
+
+  const ratingColor = result ? ROI_RATING_COLOR[result.roi_rating] || ROI_RATING_COLOR.fair : '';
+  const ratingLabel = result ? ROI_RATING_LABEL[result.roi_rating] || result.roi_rating : '';
+  const amount      = tierInfo[tier]?.amount || 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black text-gray-900 capitalize" style={{ fontFamily: "'Syne', sans-serif" }}>
+                {tier} Sponsorship ROI
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">{tournament.name} · ₹{amount.toLocaleString('en-IN')}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center py-10 gap-3">
+              <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-400">Estimating your ROI...</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && !loading && (
+            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 mb-4">
+              {error}
+              <p className="text-xs mt-1 text-red-400">You can still proceed with sponsorship below.</p>
+            </div>
+          )}
+
+          {/* Result */}
+          {result && !loading && (
+            <div className="flex flex-col gap-4">
+
+              {/* Main metric */}
+              <div className={`rounded-2xl p-5 ${ratingColor}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-3xl font-black text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+                      {result.estimated_reach.toLocaleString('en-IN')}
+                    </div>
+                    <div className="text-xs text-gray-500">estimated people reached</div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-sm font-bold ${ratingColor.split(' ')[0]}`}>{ratingLabel}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">₹{result.cost_per_person}/person</div>
+                  </div>
+                </div>
+                {result.gemini?.headline && (
+                  <p className="text-xs font-semibold text-gray-700 mt-2">{result.gemini.headline}</p>
+                )}
+              </div>
+
+              {/* Reach breakdown */}
+              <div className="border border-gray-100 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Where Your Brand Reaches</p>
+                {[
+                  { icon: '👥', label: 'Players + Teams',    value: result.reach_breakdown.players },
+                  { icon: '👨‍👩‍👧', label: 'Family Spectators', value: result.reach_breakdown.family },
+                  { icon: '🏟️', label: 'Venue Audience',     value: result.reach_breakdown.venue_spectators },
+                  { icon: '📱', label: 'Social Media',       value: result.reach_breakdown.social_media },
+                  { icon: '🗣️', label: 'Word of Mouth',      value: result.reach_breakdown.word_of_mouth },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{item.icon}</span>
+                      <span className="text-xs text-gray-500">{item.label}</span>
+                    </div>
+                    <span className="text-xs font-bold text-gray-700">{item.value.toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pitch line */}
+              {result.gemini?.pitch_line && (
+                <div className="bg-gray-900 rounded-xl px-4 py-3">
+                  <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Your ROI in one line</p>
+                  <p className="text-xs text-white italic">"{result.gemini.pitch_line}"</p>
+                </div>
+              )}
+
+              {/* vs digital */}
+              {result.gemini?.comparison && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <p className="text-xs text-blue-600 font-semibold mb-1">📊 vs Digital Advertising</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">{result.gemini.comparison}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 mt-5">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onProceed}
+              className="flex-1 py-2.5 text-sm font-semibold text-white bg-amber-500 rounded-xl hover:bg-amber-600 transition-colors"
+            >
+              Proceed to Sponsor →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────
+export default function SponsorBrowseTournamentsPage() {
+  const [tournaments, setTournaments]     = useState([]);
+  const [mySponsorships, setMySponsorships] = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [filters, setFilters]             = useState({ sport: '', search: '' });
+  const [selected, setSelected]           = useState(null);
+  const [selectedTier, setSelectedTier]   = useState(null);
+  const [showROI, setShowROI]             = useState(false);
+  const [showModal, setShowModal]         = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -55,7 +255,6 @@ export default function SponsorBrowseTournamentsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // map of tournamentId → tiers already sponsored
   const sponsoredMap = {};
   mySponsorships.forEach((s) => {
     const tid = s.tournamentId?._id?.toString();
@@ -65,9 +264,14 @@ export default function SponsorBrowseTournamentsPage() {
     }
   });
 
-  const handleSponsor = (tournament, tier) => {
+  const handleEstimateROI = (tournament, tier) => {
     setSelected(tournament);
     setSelectedTier(tier);
+    setShowROI(true);
+  };
+
+  const handleProceedToSponsor = () => {
+    setShowROI(false);
     setShowModal(true);
   };
 
@@ -183,17 +387,30 @@ export default function SponsorBrowseTournamentsPage() {
                             <div className="text-base font-black text-gray-900 mb-2" style={{ fontFamily: "'Syne', sans-serif" }}>
                               ₹{info.amount.toLocaleString('en-IN')}
                             </div>
-                            <button
-                              onClick={() => !alreadySponsored && handleSponsor(t, tier)}
-                              disabled={alreadySponsored}
-                              className={`w-full py-1.5 rounded-lg text-xs font-semibold transition-all
-                                ${alreadySponsored
-                                  ? 'bg-emerald-50 text-emerald-600 cursor-not-allowed'
-                                  : 'bg-amber-500 text-white hover:bg-amber-600'
-                                }`}
-                            >
-                              {alreadySponsored ? '✓ Sponsored' : 'Sponsor Now'}
-                            </button>
+
+                            {alreadySponsored ? (
+                              <button
+                                disabled
+                                className="w-full py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-600 cursor-not-allowed"
+                              >
+                                ✓ Sponsored
+                              </button>
+                            ) : (
+                              <div className="flex flex-col gap-1.5">
+                                <button
+                                  onClick={() => handleEstimateROI(t, tier)}
+                                  className="w-full py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-600 hover:bg-amber-50 transition-colors"
+                                >
+                                  📊 View ROI
+                                </button>
+                                <button
+                                  onClick={() => { setSelected(t); setSelectedTier(tier); setShowModal(true); }}
+                                  className="w-full py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                                >
+                                  Sponsor Now
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -206,6 +423,17 @@ export default function SponsorBrowseTournamentsPage() {
         )}
       </div>
 
+      {/* ROI Modal */}
+      {showROI && selected && selectedTier && (
+        <ROIModal
+          tournament={selected}
+          tier={selectedTier}
+          onClose={() => { setShowROI(false); setSelected(null); setSelectedTier(null); }}
+          onProceed={handleProceedToSponsor}
+        />
+      )}
+
+      {/* Sponsorship Payment Modal */}
       {showModal && selected && selectedTier && (
         <SponsorshipModal
           tournament={selected}

@@ -4,9 +4,11 @@ import OrganiserLayout from '../../layouts/OrganiserLayout';
 import tournamentService from '../../services/tournamentService';
 import teamService from '../../services/teamService';
 import sponsorshipService from '../../services/sponsorshipService';
+import matchService from '../../services/matchService';
 import MatchesSection from '../../components/matches/MatchesSection';
 import BroadcastModal from '../../components/communications/BroadcastModal';
 import RegistrationForecast from '../../components/ml/RegistrationForecast';
+import SponsorROI from '../../components/ml/SponsorROI';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -197,23 +199,26 @@ export default function TournamentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [tournament, setTournament] = useState(null);
-  const [teams, setTeams] = useState([]);
+  const [tournament, setTournament]   = useState(null);
+  const [teams, setTeams]             = useState([]);
+  const [matches, setMatches]         = useState([]);
   const [sponsorships, setSponsorships] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]         = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedCode, setCopiedCode]   = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab]     = useState('overview');
 
   const fetchData = useCallback(async () => {
     try {
-      const [tData, teamsData] = await Promise.all([
+      const [tData, teamsData, matchesData] = await Promise.all([
         tournamentService.getTournament(id),
         teamService.getTeamsByTournament(id),
+        matchService.getMatchesByTournament(id),
       ]);
       setTournament(tData.tournament);
       setTeams(teamsData.teams);
+      setMatches(matchesData.matches);
     } catch (error) {
       console.error('Failed to fetch tournament', error);
     } finally {
@@ -303,8 +308,9 @@ export default function TournamentDetailPage() {
   const nextStatus = currentStatusIndex < statusFlow.length - 1 ? statusFlow[currentStatusIndex + 1] : null;
 
   const tabs = [
-    { key: 'overview',    label: 'Overview' },
-    { key: 'ai-insights', label: 'Registration Forecaster' },
+    { key: 'overview',       label: 'Overview' },
+    { key: 'reg-forecaster', label: '📊 Registration Forecaster' },
+    { key: 'sponsor-roi',    label: '💼 Sponsor ROI' },
   ];
 
   return (
@@ -445,10 +451,10 @@ export default function TournamentDetailPage() {
                 </h2>
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   {[
-                    { label: 'Entry Revenue Collected', value: `₹${entryRevenue.toLocaleString('en-IN')}`,           sub: `${paidTeams.length + cashTeams.length} teams paid`,                                                                      color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Sponsorship Revenue',     value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',                                        color: 'text-blue-600',    bg: 'bg-blue-50' },
-                    { label: 'Total Revenue',           value: `₹${totalRevenue.toLocaleString('en-IN')}`,            sub: 'Entry + sponsorship',                                                                                                       color: 'text-gray-900',    bg: 'bg-gray-50' },
-                    { label: 'Total Prize Pool',        value: `₹${totalPrizePool.toLocaleString('en-IN')}`,          sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`,       color: 'text-purple-600',  bg: 'bg-purple-50' },
+                    { label: 'Entry Revenue Collected', value: `₹${entryRevenue.toLocaleString('en-IN')}`,           sub: `${paidTeams.length + cashTeams.length} teams paid`,                                                                color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Sponsorship Revenue',     value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',                              color: 'text-blue-600',    bg: 'bg-blue-50' },
+                    { label: 'Total Revenue',           value: `₹${totalRevenue.toLocaleString('en-IN')}`,            sub: 'Entry + sponsorship',                                                                                           color: 'text-gray-900',    bg: 'bg-gray-50' },
+                    { label: 'Total Prize Pool',        value: `₹${totalPrizePool.toLocaleString('en-IN')}`,          sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`, color: 'text-purple-600', bg: 'bg-purple-50' },
                   ].map((s) => (
                     <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
                       <p className="text-xs text-gray-500 mb-1">{s.label}</p>
@@ -633,15 +639,23 @@ export default function TournamentDetailPage() {
           </>
         )}
 
-        {/* ── AI INSIGHTS TAB ── */}
-        {activeTab === 'ai-insights' && (
-          <div className="flex flex-col gap-6">
-            <RegistrationForecast
-              tournament={tournament}
-              teams={teams}
-              sponsorships={sponsorships}
-            />
-          </div>
+        {/* ── REGISTRATION FORECASTER TAB ── */}
+        {activeTab === 'reg-forecaster' && (
+          <RegistrationForecast
+            tournament={tournament}
+            teams={teams}
+            sponsorships={sponsorships}
+          />
+        )}
+
+        {/* ── SPONSOR ROI TAB ── */}
+        {activeTab === 'sponsor-roi' && (
+          <SponsorROI
+            tournament={tournament}
+            teams={teams}
+            matches={matches}
+            sponsorships={sponsorships}
+          />
         )}
 
       </div>
