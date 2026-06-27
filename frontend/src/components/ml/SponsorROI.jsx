@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import api from '../../services/api';
+import mlService from '../../services/mlService';
 
 const TIERS = [
   { value: 'platinum', label: 'Platinum', amount: '₹50,000', color: 'border-purple-400 bg-purple-50 text-purple-600', badge: 'bg-purple-100 text-purple-700' },
@@ -44,8 +44,7 @@ export default function SponsorROI({ tournament, teams, matches, sponsorships })
 
     try {
       const registeredTeams = teams?.filter((t) => !t.isWaitlisted) || [];
-
-      const response = await api.post('/ml/sponsor-roi', {
+      const response = await mlService.predictSponsorROI({
         sport:                tournament.sport,
         city_tier:            getCityTier(),
         num_teams:            registeredTeams.length || tournament.maxTeams,
@@ -57,8 +56,7 @@ export default function SponsorROI({ tournament, teams, matches, sponsorships })
         format:               tournament.format,
         sponsorship_tier:     selectedTier,
       });
-
-      setResult(response.data.data);
+      setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to get ROI estimate. Make sure ML service is running.');
     } finally {
@@ -66,7 +64,7 @@ export default function SponsorROI({ tournament, teams, matches, sponsorships })
     }
   }, [tournament, teams, matches, sponsorships, selectedTier, getCityTier, getTournamentDays]);
 
-  const ratingConfig = result ? ROI_RATING[result.roi_rating] || ROI_RATING.fair : null;
+  const ratingConfig       = result ? ROI_RATING[result.roi_rating] || ROI_RATING.fair : null;
   const selectedTierConfig = TIERS.find((t) => t.value === selectedTier);
 
   return (
@@ -90,7 +88,7 @@ export default function SponsorROI({ tournament, teams, matches, sponsorships })
         {[
           { label: 'Teams',    value: teams?.filter((t) => !t.isWaitlisted).length || tournament?.maxTeams },
           { label: 'Matches',  value: matches?.length || 0 },
-          { label: 'Capacity', value: tournament?.venue?.capacity ? `${tournament.venue.capacity.toLocaleString('en-IN')}` : 'N/A' },
+          { label: 'Capacity', value: tournament?.venue?.capacity ? tournament.venue.capacity.toLocaleString('en-IN') : 'N/A' },
         ].map((s) => (
           <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
             <div className="text-xl font-black text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>{s.value}</div>
@@ -165,12 +163,9 @@ export default function SponsorROI({ tournament, teams, matches, sponsorships })
               </div>
               <div className="text-right">
                 <div className={`text-sm font-black ${ratingConfig.color}`}>{ratingConfig.label}</div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  ₹{result.cost_per_person} per person
-                </div>
+                <div className="text-xs text-gray-500 mt-0.5">₹{result.cost_per_person} per person</div>
               </div>
             </div>
-
             {result.gemini && (
               <>
                 <h4 className="text-sm font-black text-gray-900 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -185,11 +180,11 @@ export default function SponsorROI({ tournament, teams, matches, sponsorships })
           <div className="border border-gray-100 rounded-xl p-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Reach Breakdown</p>
             {[
-              { icon: '👥', label: 'Players + Teams',     value: result.reach_breakdown.players },
-              { icon: '👨‍👩‍👧', label: 'Family Spectators',  value: result.reach_breakdown.family },
-              { icon: '🏟️', label: 'Venue Spectators',    value: result.reach_breakdown.venue_spectators },
-              { icon: '📱', label: 'Social Media',        value: result.reach_breakdown.social_media },
-              { icon: '🗣️', label: 'Word of Mouth',       value: result.reach_breakdown.word_of_mouth },
+              { icon: '👥', label: 'Players + Teams',    value: result.reach_breakdown.players },
+              { icon: '👨‍👩‍👧', label: 'Family Spectators', value: result.reach_breakdown.family },
+              { icon: '🏟️', label: 'Venue Spectators',   value: result.reach_breakdown.venue_spectators },
+              { icon: '📱', label: 'Social Media',       value: result.reach_breakdown.social_media },
+              { icon: '🗣️', label: 'Word of Mouth',      value: result.reach_breakdown.word_of_mouth },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-3 mb-2">
                 <span className="text-base w-6 flex-shrink-0">{item.icon}</span>

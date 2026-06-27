@@ -3,7 +3,7 @@ import SponsorLayout from '../../layouts/SponsorLayout';
 import SponsorshipModal from '../../components/sponsorships/SponsorshipModal';
 import tournamentService from '../../services/tournamentService';
 import sponsorshipService from '../../services/sponsorshipService';
-import api from '../../services/api';
+import mlService from '../../services/mlService';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -72,7 +72,7 @@ function ROIModal({ tournament, tier, onClose, onProceed }) {
   useEffect(() => {
     const fetchROI = async () => {
       try {
-        const response = await api.post('/ml/sponsor-roi', {
+        const response = await mlService.predictSponsorROI({
           sport:                tournament.sport,
           city_tier:            getCityTier(),
           num_teams:            tournament.registeredCount || tournament.maxTeams,
@@ -84,7 +84,7 @@ function ROIModal({ tournament, tier, onClose, onProceed }) {
           format:               tournament.format,
           sponsorship_tier:     tier,
         });
-        setResult(response.data.data);
+        setResult(response.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load ROI estimate. ML service may not be running.');
       } finally {

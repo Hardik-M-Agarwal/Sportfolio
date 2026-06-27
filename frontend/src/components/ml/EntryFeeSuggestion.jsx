@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import api from '../../services/api';
+import mlService from '../../services/mlService';
 
 export default function EntryFeeSuggestion({ formData, onUseFee }) {
   const [loading, setLoading]   = useState(false);
@@ -19,7 +19,7 @@ export default function EntryFeeSuggestion({ formData, onUseFee }) {
     setResult(null);
 
     try {
-      const response = await api.post('/ml/entry-fee', {
+      const response = await mlService.predictEntryFee({
         sport:            formData.sport,
         city_tier:        formData.cityTier,
         venue_cost:       formData.venueCost,
@@ -30,7 +30,7 @@ export default function EntryFeeSuggestion({ formData, onUseFee }) {
         prize_percentage: formData.prizePercentage || 60,
         tournament_days:  formData.tournamentDays || 1,
       });
-      setResult(response.data.data);
+      setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to get prediction. Make sure the ML service is running.');
     } finally {
@@ -39,9 +39,7 @@ export default function EntryFeeSuggestion({ formData, onUseFee }) {
   };
 
   const handleUseFee = () => {
-    if (result) {
-      onUseFee(result.suggested_fee);
-    }
+    if (result) onUseFee(result.suggested_fee);
   };
 
   const confidenceColor = {
@@ -119,9 +117,7 @@ export default function EntryFeeSuggestion({ formData, onUseFee }) {
             <h4 className="text-sm font-black text-gray-900 mb-1" style={{ fontFamily: "'Syne', sans-serif" }}>
               {result.gemini.headline}
             </h4>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              {result.gemini.summary}
-            </p>
+            <p className="text-xs text-gray-500 leading-relaxed">{result.gemini.summary}</p>
           </div>
 
           {/* Breakdown */}
@@ -183,7 +179,7 @@ export default function EntryFeeSuggestion({ formData, onUseFee }) {
             </div>
           )}
 
-          {/* Model metrics — for demo purposes */}
+          {/* Model metrics */}
           {result.model_metrics?.r2_score && (
             <div className="border border-gray-100 rounded-xl px-4 py-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Model Performance</p>

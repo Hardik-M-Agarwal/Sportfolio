@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import api from '../../services/api';
+import mlService from '../../services/mlService';
 
 const predictionConfig = {
   will_fill: {
@@ -75,7 +75,7 @@ export default function RegistrationForecast({ tournament, teams, sponsorships }
     setResult(null);
 
     try {
-      const response = await api.post('/ml/registration', {
+      const response = await mlService.predictRegistration({
         sport:                 tournament.sport,
         city_tier:             getCityTier(),
         current_registrations: teams?.filter((t) => !t.isWaitlisted).length || 0,
@@ -87,7 +87,7 @@ export default function RegistrationForecast({ tournament, teams, sponsorships }
         has_sponsor:           (sponsorships || []).length > 0 ? 1 : 0,
         format:                tournament.format,
       });
-      setResult(response.data.data);
+      setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to get forecast. Make sure ML service is running.');
     } finally {
@@ -117,7 +117,7 @@ export default function RegistrationForecast({ tournament, teams, sponsorships }
       {/* Current snapshot */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: 'Registered',     value: `${registeredTeams} / ${tournament?.maxTeams}` },
+          { label: 'Registered',      value: `${registeredTeams} / ${tournament?.maxTeams}` },
           { label: 'Days Since Open', value: getDaysSinceOpen() },
           { label: 'Days Left',       value: Math.max(0, getTotalDays() - getDaysSinceOpen()) },
         ].map((s) => (
@@ -144,7 +144,7 @@ export default function RegistrationForecast({ tournament, teams, sponsorships }
         </div>
       </div>
 
-      {/* Predict button — always visible */}
+      {/* Predict button */}
       {!loading && (
         <button
           onClick={fetchPrediction}
@@ -211,8 +211,8 @@ export default function RegistrationForecast({ tournament, teams, sponsorships }
                 .map(([cls, prob]) => {
                   const cfg = predictionConfig[cls];
                   const barColors = {
-                    will_fill: 'bg-emerald-500',
-                    wont_fill: 'bg-red-400',
+                    will_fill:      'bg-emerald-500',
+                    wont_fill:      'bg-red-400',
                     oversubscribed: 'bg-blue-500',
                   };
                   return (
