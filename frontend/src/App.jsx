@@ -9,6 +9,7 @@ import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
 import SponsorshipsPage from './pages/organiser/SponsorshipsPage';
 import EntryFeePredictorPage from './pages/organiser/EntryFeePredictorPage';
 import FinanceDashboard from './pages/organiser/FinanceDashboard';
+import ReportsPage from './pages/organiser/ReportsPage';
 
 import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
@@ -57,6 +58,9 @@ export default function App() {
         } />
         <Route path="/organiser/finance" element={
           <ProtectedRoute role="organiser"><FinanceDashboard /></ProtectedRoute>
+        } />
+        <Route path="/organiser/reports" element={
+          <ProtectedRoute role="organiser"><ReportsPage /></ProtectedRoute>
         } />
 
         {/* Captain */}

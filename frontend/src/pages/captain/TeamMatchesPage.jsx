@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import CaptainLayout from '../../layouts/CaptainLayout';
 import matchService from '../../services/matchService';
 import teamService from '../../services/teamService';
+import reportService from '../../services/reportService';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -11,7 +12,7 @@ const sportEmoji = {
 
 const statusColor = {
   scheduled: 'bg-gray-100 text-gray-500',
-  ongoing:   'bg-blue-100 text-blue-600',
+  ongoing: 'bg-blue-100 text-blue-600',
   completed: 'bg-emerald-100 text-emerald-600',
 };
 
@@ -33,6 +34,7 @@ export default function TeamMatchesPage() {
   const [matches, setMatches] = useState([]);
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -51,6 +53,22 @@ export default function TeamMatchesPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const handleDownloadReport = async () => {
+    if (!team?.tournamentId?._id) return;
+    setDownloading(true);
+    try {
+      await reportService.downloadTeamPerformance(
+        team.tournamentId._id,
+        team.tournamentId.name || 'tournament',
+        teamId
+      );
+    } catch (err) {
+      alert('Failed to generate report.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   // group by round
   const rounds = matches.reduce((acc, match) => {
     const key = match.roundName || `Round ${match.round}`;
@@ -62,6 +80,7 @@ export default function TeamMatchesPage() {
   const sport = team?.tournamentId?.sport;
   const won = matches.filter((m) => m.result?.winnerId?._id === teamId || m.result?.winnerId === teamId).length;
   const lost = matches.filter((m) => m.status === 'completed' && m.result?.winnerId && m.result?.winnerId?._id !== teamId && m.result?.winnerId !== teamId).length;
+  const isCompleted = team?.tournamentId?.status === 'completed';
 
   return (
     <CaptainLayout>
@@ -85,16 +104,41 @@ export default function TeamMatchesPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="text-4xl">{sportEmoji[sport]}</div>
-              <div>
-                <h1 className="text-3xl font-black tracking-tight text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
-                  {team?.teamName}
-                </h1>
-                <p className="text-sm text-gray-400 mt-0.5 capitalize">
-                  {team?.tournamentId?.name} · {sport} · {team?.tournamentId?.venue?.city}
-                </p>
+            <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">{sportEmoji[sport]}</div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight text-gray-900" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    {team?.teamName}
+                  </h1>
+                  <p className="text-sm text-gray-400 mt-0.5 capitalize">
+                    {team?.tournamentId?.name} · {sport} · {team?.tournamentId?.venue?.city}
+                  </p>
+                </div>
               </div>
+
+              {/* Download report button — only for completed tournaments */}
+              {isCompleted && (
+                <button
+                  onClick={handleDownloadReport}
+                  disabled={downloading}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      👥 Download Team Report
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Stats */}
@@ -128,7 +172,6 @@ export default function TeamMatchesPage() {
               <div className="flex flex-col gap-6">
                 {Object.entries(rounds).map(([roundName, roundMatches]) => (
                   <div key={roundName}>
-                    {/* Round header */}
                     <div className="flex items-center gap-3 mb-3">
                       <div className="text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                         {roundName}
@@ -149,7 +192,7 @@ export default function TeamMatchesPage() {
                         const winnerId = match.result?.winnerId?._id || match.result?.winnerId;
                         const didWin = winnerId?.toString() === teamId;
                         const didLose = match.status === 'completed' && winnerId && winnerId?.toString() !== teamId;
-                        const isCompleted = match.status === 'completed';
+                        const matchDone = match.status === 'completed';
 
                         return (
                           <div
@@ -157,17 +200,16 @@ export default function TeamMatchesPage() {
                             className={`bg-white border rounded-xl p-5 transition-all
                               ${didWin ? 'border-emerald-200 bg-emerald-50/30' :
                                 didLose ? 'border-red-100 bg-red-50/20' :
-                                'border-gray-200'}`}
+                                  'border-gray-200'}`}
                           >
                             <div className="flex items-start justify-between flex-wrap gap-3">
                               <div className="flex-1 min-w-0">
-                                {/* Match meta */}
                                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                                   <span className="text-xs font-bold text-gray-300 font-mono">#{match.matchNumber}</span>
                                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor[match.status]}`}>
                                     {match.status}
                                   </span>
-                                  {isCompleted && (
+                                  {matchDone && (
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full
                                       ${didWin ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'}`}>
                                       {didWin ? '🏆 Won' : '❌ Lost'}
@@ -180,7 +222,6 @@ export default function TeamMatchesPage() {
                                   )}
                                 </div>
 
-                                {/* Teams */}
                                 <div className="flex items-center gap-4">
                                   <div className="flex-1">
                                     <p className="text-xs text-gray-400 mb-0.5">Your team</p>
@@ -188,7 +229,7 @@ export default function TeamMatchesPage() {
                                       style={{ fontFamily: "'Syne', sans-serif" }}>
                                       {myTeam?.teamName}
                                     </p>
-                                    {isCompleted && myScore && (
+                                    {matchDone && myScore && (
                                       <p className="text-sm font-bold text-gray-600 mt-0.5">{myScore}</p>
                                     )}
                                   </div>
@@ -201,18 +242,16 @@ export default function TeamMatchesPage() {
                                       style={{ fontFamily: "'Syne', sans-serif" }}>
                                       {opponent?.teamName}
                                     </p>
-                                    {isCompleted && oppScore && (
+                                    {matchDone && oppScore && (
                                       <p className="text-sm font-bold text-gray-600 mt-0.5">{oppScore}</p>
                                     )}
                                   </div>
                                 </div>
 
-                                {/* Result notes */}
-                                {isCompleted && match.result?.notes && (
+                                {matchDone && match.result?.notes && (
                                   <p className="text-xs text-gray-400 mt-2">{match.result.notes}</p>
                                 )}
 
-                                {/* Schedule info */}
                                 {(match.matchDate || match.venue) && (
                                   <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
                                     {match.matchDate && (
@@ -236,7 +275,6 @@ export default function TeamMatchesPage() {
                                 )}
                               </div>
 
-                              {/* Scorecard link */}
                               <button
                                 onClick={() => navigate(`/match/${match._id}`)}
                                 className="px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-500 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"

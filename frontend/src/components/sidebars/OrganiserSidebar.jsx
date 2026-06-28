@@ -55,7 +55,6 @@ const navItems = [
     ),
     label: 'Reports',
     to: '/organiser/reports',
-    soon: true,
   },
 ];
 
