@@ -23,6 +23,7 @@ const communicationsRoutes = require("./routes/communicationsRoutes");
 const { startReminderService } = require('./services/reminderService');
 const outreachRoutes = require("./routes/outreachRoutes");
 const mlRoutes = require('./routes/mlRoutes');
+const expenseRoutes = require('./routes/expenseRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -75,6 +76,7 @@ app.use('/api/scoring', scoringRoutes);
 app.use("/api/communications", communicationsRoutes);
 app.use("/api/outreach", outreachRoutes);
 app.use('/api/ml', mlRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 startReminderService();
 

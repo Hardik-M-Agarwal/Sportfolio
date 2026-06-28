@@ -9,6 +9,7 @@ import MatchesSection from '../../components/matches/MatchesSection';
 import BroadcastModal from '../../components/communications/BroadcastModal';
 import RegistrationForecast from '../../components/ml/RegistrationForecast';
 import SponsorROI from '../../components/ml/SponsorROI';
+import ExpenseTracker from '../../components/finance/ExpenseTracker';
 
 const sportEmoji = {
   cricket: '🏏', football: '⚽', badminton: '🏸',
@@ -43,10 +44,10 @@ const formatDate = (date) =>
 // ── Sponsors Section ──────────────────────────────────────────────────
 function SponsorsSection({ tournamentId, basePrizePool, onSponsorshipUpdate, onSponsorshipsLoaded }) {
   const [sponsorships, setSponsorships] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [prizeInput, setPrizeInput] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]     = useState(false);
 
   const fetchSponsorships = useCallback(async () => {
     try {
@@ -199,15 +200,15 @@ export default function TournamentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [tournament, setTournament]   = useState(null);
-  const [teams, setTeams]             = useState([]);
-  const [matches, setMatches]         = useState([]);
+  const [tournament, setTournament]     = useState(null);
+  const [teams, setTeams]               = useState([]);
+  const [matches, setMatches]           = useState([]);
   const [sponsorships, setSponsorships] = useState([]);
-  const [loading, setLoading]         = useState(true);
+  const [loading, setLoading]           = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [copiedCode, setCopiedCode]   = useState(false);
+  const [copiedCode, setCopiedCode]     = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
-  const [activeTab, setActiveTab]     = useState('overview');
+  const [activeTab, setActiveTab]       = useState('overview');
 
   const fetchData = useCallback(async () => {
     try {
@@ -309,7 +310,8 @@ export default function TournamentDetailPage() {
 
   const tabs = [
     { key: 'overview',       label: 'Overview' },
-    { key: 'reg-forecaster', label: '📊 Registration Forecaster' },
+    { key: 'finance',        label: '💰 Finance' },
+    { key: 'reg-forecaster', label: '📊 Reg Forecaster' },
     { key: 'sponsor-roi',    label: '💼 Sponsor ROI' },
   ];
 
@@ -347,7 +349,6 @@ export default function TournamentDetailPage() {
             </div>
           </div>
 
-          {/* Status controls + actions */}
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowBroadcast(true)}
@@ -398,10 +399,7 @@ export default function TournamentDetailPage() {
         {/* ── OVERVIEW TAB ── */}
         {activeTab === 'overview' && (
           <>
-            {/* Top grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-
-              {/* Tournament Info */}
               <div className="bg-white border border-gray-200 rounded-xl p-6 lg:col-span-1">
                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
                   Tournament Info
@@ -444,17 +442,16 @@ export default function TournamentDetailPage() {
                 </div>
               </div>
 
-              {/* Financial Snapshot */}
               <div className="bg-white border border-gray-200 rounded-xl p-6 lg:col-span-2">
                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
                   Financial Snapshot
                 </h2>
                 <div className="grid grid-cols-2 gap-4 mb-5">
                   {[
-                    { label: 'Entry Revenue Collected', value: `₹${entryRevenue.toLocaleString('en-IN')}`,           sub: `${paidTeams.length + cashTeams.length} teams paid`,                                                                color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Sponsorship Revenue',     value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',                              color: 'text-blue-600',    bg: 'bg-blue-50' },
-                    { label: 'Total Revenue',           value: `₹${totalRevenue.toLocaleString('en-IN')}`,            sub: 'Entry + sponsorship',                                                                                           color: 'text-gray-900',    bg: 'bg-gray-50' },
-                    { label: 'Total Prize Pool',        value: `₹${totalPrizePool.toLocaleString('en-IN')}`,          sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`, color: 'text-purple-600', bg: 'bg-purple-50' },
+                    { label: 'Entry Revenue Collected', value: `₹${entryRevenue.toLocaleString('en-IN')}`,           sub: `${paidTeams.length + cashTeams.length} teams paid`,                                                                          color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Sponsorship Revenue',     value: `₹${totalSponsorshipRevenue.toLocaleString('en-IN')}`, sub: sponsorships.length > 0 ? `${sponsorships.length} sponsor(s)` : 'No sponsors yet',                                            color: 'text-blue-600',    bg: 'bg-blue-50' },
+                    { label: 'Total Revenue',           value: `₹${totalRevenue.toLocaleString('en-IN')}`,            sub: 'Entry + sponsorship',                                                                                                           color: 'text-gray-900',    bg: 'bg-gray-50' },
+                    { label: 'Total Prize Pool',        value: `₹${totalPrizePool.toLocaleString('en-IN')}`,          sub: `Base ₹${basePrizePool.toLocaleString('en-IN')} + ₹${totalPrizeContribution.toLocaleString('en-IN')} from sponsors`,           color: 'text-purple-600',  bg: 'bg-purple-50' },
                   ].map((s) => (
                     <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
                       <p className="text-xs text-gray-500 mb-1">{s.label}</p>
@@ -487,7 +484,6 @@ export default function TournamentDetailPage() {
               </div>
             </div>
 
-            {/* Registration Progress */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -517,7 +513,6 @@ export default function TournamentDetailPage() {
               </div>
             </div>
 
-            {/* Teams */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-5" style={{ fontFamily: "'Syne', sans-serif" }}>
                 Registered Teams ({registeredTeams.length})
@@ -596,10 +591,8 @@ export default function TournamentDetailPage() {
               )}
             </div>
 
-            {/* Matches */}
             <MatchesSection tournament={tournament} teams={teams} />
 
-            {/* Sponsors */}
             <SponsorsSection
               tournamentId={id}
               basePrizePool={basePrizePool}
@@ -607,7 +600,6 @@ export default function TournamentDetailPage() {
               onSponsorshipsLoaded={setSponsorships}
             />
 
-            {/* Quick Actions */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4" style={{ fontFamily: "'Syne', sans-serif" }}>
                 Quick Actions
@@ -639,6 +631,15 @@ export default function TournamentDetailPage() {
           </>
         )}
 
+        {/* ── FINANCE TAB ── */}
+        {activeTab === 'finance' && (
+          <ExpenseTracker
+            tournamentId={id}
+            entryRevenue={entryRevenue}
+            sponsorRevenue={totalSponsorshipRevenue}
+          />
+        )}
+
         {/* ── REGISTRATION FORECASTER TAB ── */}
         {activeTab === 'reg-forecaster' && (
           <RegistrationForecast
@@ -660,14 +661,12 @@ export default function TournamentDetailPage() {
 
       </div>
 
-      {/* Broadcast Modal */}
       {showBroadcast && (
         <BroadcastModal
           tournament={tournament}
           onClose={() => setShowBroadcast(false)}
         />
       )}
-
     </OrganiserLayout>
   );
 }
