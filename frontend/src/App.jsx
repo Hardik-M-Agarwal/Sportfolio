@@ -8,6 +8,7 @@ import TournamentsPage from './pages/organiser/TournamentsPage';
 import TournamentDetailPage from './pages/organiser/TournamentDetailPage';
 import SponsorshipsPage from './pages/organiser/SponsorshipsPage';
 import EntryFeePredictorPage from './pages/organiser/EntryFeePredictorPage';
+import FinanceDashboard from './pages/organiser/FinanceDashboard';
 
 import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
@@ -53,6 +54,9 @@ export default function App() {
         } />
         <Route path="/organiser/entry-fee-predictor" element={
           <ProtectedRoute role="organiser"><EntryFeePredictorPage /></ProtectedRoute>
+        } />
+        <Route path="/organiser/finance" element={
+          <ProtectedRoute role="organiser"><FinanceDashboard /></ProtectedRoute>
         } />
 
         {/* Captain */}

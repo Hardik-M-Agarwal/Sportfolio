@@ -46,7 +46,6 @@ const navItems = [
     ),
     label: 'Finance',
     to: '/organiser/finance',
-    soon: true,
   },
   {
     icon: (
@@ -70,9 +69,9 @@ export default function OrganiserSidebar() {
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-gray-900 flex flex-col">
+    <aside className="w-64 h-screen bg-gray-900 flex flex-col overflow-y-auto">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/10">
+      <div className="px-6 py-5 border-b border-white/10 flex-shrink-0">
         <div className="font-black text-xl tracking-tight text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
           Sport<span className="text-blue-400">folio</span>
         </div>
@@ -80,7 +79,7 @@ export default function OrganiserSidebar() {
       </div>
 
       {/* User info */}
-      <div className="px-6 py-4 border-b border-white/10">
+      <div className="px-6 py-4 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
@@ -124,7 +123,7 @@ export default function OrganiserSidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-4 border-t border-white/10">
+      <div className="px-3 py-4 border-t border-white/10 flex-shrink-0">
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/50 hover:text-white hover:bg-white/8 transition-all text-sm font-medium"
