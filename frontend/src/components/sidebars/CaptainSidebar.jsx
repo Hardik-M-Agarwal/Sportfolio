@@ -37,7 +37,6 @@ const navItems = [
     ),
     label: 'Match Results',
     to: '/captain/results',
-    soon: true,
   },
 ];
 
@@ -51,15 +50,15 @@ export default function CaptainSidebar() {
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-gray-900 flex flex-col">
-      <div className="px-6 py-5 border-b border-white/10">
+    <aside className="w-64 h-screen bg-gray-900 flex flex-col overflow-y-auto">
+      <div className="px-6 py-5 border-b border-white/10 flex-shrink-0">
         <div className="font-black text-xl tracking-tight text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
           Sport<span className="text-blue-400">folio</span>
         </div>
         <div className="text-xs text-white/40 mt-0.5">Captain Portal</div>
       </div>
 
-      <div className="px-6 py-4 border-b border-white/10">
+      <div className="px-6 py-4 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
@@ -72,30 +71,22 @@ export default function CaptainSidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-        {navItems.map((item) =>
-          item.soon ? (
-            <div key={item.label} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/30 cursor-not-allowed select-none">
-              {item.icon}
-              <span className="text-sm font-medium">{item.label}</span>
-              <span className="ml-auto text-xs bg-white/10 text-white/30 px-2 py-0.5 rounded-full">Soon</span>
-            </div>
-          ) : (
-            <NavLink
-              key={item.label}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium
-                ${isActive ? 'bg-emerald-600 text-white' : 'text-white/60 hover:text-white hover:bg-white/8'}`
-              }
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          )
-        )}
+        {navItems.map((item) => (
+          <NavLink
+            key={item.label}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium
+              ${isActive ? 'bg-emerald-600 text-white' : 'text-white/60 hover:text-white hover:bg-white/8'}`
+            }
+          >
+            {item.icon}
+            {item.label}
+          </NavLink>
+        ))}
       </nav>
 
-      <div className="px-3 py-4 border-t border-white/10">
+      <div className="px-3 py-4 border-t border-white/10 flex-shrink-0">
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/50 hover:text-white hover:bg-white/8 transition-all text-sm font-medium"

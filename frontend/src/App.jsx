@@ -15,6 +15,7 @@ import CaptainDashboard from './pages/captain/CaptainDashboard';
 import BrowseTournamentsPage from './pages/captain/BrowseTournamentsPage';
 import MyTeamsPage from './pages/captain/MyTeamsPage';
 import TeamMatchesPage from './pages/captain/TeamMatchesPage';
+import MatchResultsPage from './pages/captain/MatchResultsPage';
 
 import SponsorDashboard from './pages/sponsor/SponsorDashboard';
 import SponsorBrowseTournamentsPage from './pages/sponsor/BrowseTournamentsPage';
@@ -75,6 +76,9 @@ export default function App() {
         } />
         <Route path="/captain/teams/:teamId/matches" element={
           <ProtectedRoute role="captain"><TeamMatchesPage /></ProtectedRoute>
+        } />
+        <Route path="/captain/results" element={
+          <ProtectedRoute role="captain"><MatchResultsPage /></ProtectedRoute>
         } />
 
         {/* Sponsor */}
