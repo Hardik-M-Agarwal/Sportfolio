@@ -52,6 +52,19 @@ def get_gemini_model():
 
 gemini_model = get_gemini_model()
 
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({
+        'service': 'Sportfolio ML',
+        'status': 'running',
+        'endpoints': [
+            '/health',
+            '/predict/entry-fee',
+            '/predict/registration',
+            '/predict/sponsor-roi',
+        ],
+    })
+
 # ── Health check ──────────────────────────────────────────────────────
 @app.route('/health', methods=['GET'])
 def health():
