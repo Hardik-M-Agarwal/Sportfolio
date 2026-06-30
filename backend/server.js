@@ -29,10 +29,31 @@ const reportRoutes = require('./routes/reportRoutes');
 const app = express();
 const server = http.createServer(app);
 
+// Allow multiple origins (local dev + deployed frontend) without
+// hardcoding. Set FRONTEND_URL on Render to your Vercel URL once deployed.
+// Comma-separate multiple origins if needed, e.g.
+// FRONTEND_URL=https://sportfolio.vercel.app,https://www.sportfolio.app
+const allowedOrigins = [
+  'http://localhost:5173',
+  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : []),
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow non-browser tools (curl, Postman) which send no origin
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
+  },
+  credentials: true,
+};
+
 // Socket.io
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -63,10 +84,7 @@ io.on('connection', (socket) => {
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tournaments', tournamentRoutes);
