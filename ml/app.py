@@ -1,7 +1,7 @@
 """
 Sportfolio ML Service
 Single Flask app serving all ML models
-Port: 5050
+Local port: 5050 (Render assigns PORT dynamically via run.py)
 """
 
 import os
@@ -17,7 +17,15 @@ from registration_forecaster.predictor import predict_registration
 from sponsor_roi.predictor import predict_sponsor_roi
 
 app = Flask(__name__)
-CORS(app)
+
+# Restrict CORS to the Node.js backend only (set BACKEND_URL on Render,
+# e.g. https://sportfolio-backend.onrender.com).
+# Falls back to allow-all for local development.
+_backend_origin = os.environ.get('BACKEND_URL')
+if _backend_origin:
+    CORS(app, origins=[_backend_origin])
+else:
+    CORS(app)
 
 # ── Gemini setup with model fallback array ────────────────────────────
 genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
@@ -399,6 +407,11 @@ def _fallback_roi(prediction: dict) -> dict:
         'risk_flag': None,
     }
 
+# NOTE: this block only runs if app.py is executed directly.
+# In both local dev and on Render, run.py is the actual entry point
+# (it reads PORT from the environment and starts the server),
+# so this fallback is kept simple and is not used in normal operation.
 if __name__ == '__main__':
-    print("🚀 Starting Sportfolio ML Service on port 5050")
-    app.run(port=5050, debug=False)
+    local_port = int(os.environ.get('PORT', 5050))
+    print(f"🚀 Starting Sportfolio ML Service on port {local_port}")
+    app.run(host='0.0.0.0', port=local_port, debug=False)
