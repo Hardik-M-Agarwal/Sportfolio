@@ -3,12 +3,19 @@ import { io } from 'socket.io-client';
 
 const SocketContext = createContext(null);
 
+// Derive the Socket.io server URL from VITE_API_URL by stripping the
+// trailing /api path, e.g. https://sportfolio-backend.onrender.com/api
+// -> https://sportfolio-backend.onrender.com
+// Falls back to localhost for local dev if VITE_API_URL is not set.
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api')
+  .replace(/\/api\/?$/, '');
+
 export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const socket = io('http://localhost:5001', {
+    const socket = io(SOCKET_URL, {
       withCredentials: true,
       transports: ['websocket'],
     });
