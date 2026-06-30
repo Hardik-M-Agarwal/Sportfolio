@@ -11,10 +11,16 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// In production, frontend (Vercel) and backend (Render) are on different
+// domains, so the cookie must use sameSite: "none" + secure: true to be
+// sent cross-site by the browser. "strict" silently blocks the cookie
+// entirely in cross-origin requests, which breaks the login flow.
+const isProduction = process.env.NODE_ENV === "production";
+
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
